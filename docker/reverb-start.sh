@@ -3,6 +3,8 @@ set -e
 
 cd /var/www/html
 
+export CACHE_STORE="${CACHE_STORE:-file}"
+
 mkdir -p storage/framework/cache storage/framework/views storage/logs bootstrap/cache
 chown -R www-data:www-data storage bootstrap/cache
 
