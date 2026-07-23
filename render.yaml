@@ -57,6 +57,16 @@ services:
         value: Akatsuki Devs Support
       - key: YOUTUBE_API_KEY
         sync: false
+      - key: VAPID_SUBJECT
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: WEBPUSH_DB_CONNECTION
+        value: pgsql
+      - key: WEBPUSH_AUTOMATIC_PADDING
+        value: true
 
 databases:
   - name: akatsuki-devs-db

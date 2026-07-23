@@ -6,6 +6,8 @@ use App\Models\Message;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\WebPush\WebPushChannel;
+use NotificationChannels\WebPush\WebPushMessage;
 
 class NewMessageNotification extends Notification
 {
@@ -21,6 +23,10 @@ class NewMessageNotification extends Notification
 
         if ($notifiable->email_messages ?? true) {
             $channels[] = 'mail';
+        }
+
+        if ($this->webPushIsConfigured()) {
+            $channels[] = WebPushChannel::class;
         }
 
         return $channels;
@@ -52,5 +58,25 @@ class NewMessageNotification extends Notification
             ->line('"' . str($this->message->message)->limit(120) . '"')
             ->action('Open Messages', route('chat.index', ['user' => $this->message->sender_id]))
             ->line('You can turn off message email alerts from your account preferences.');
+    }
+
+    public function toWebPush($notifiable, $notification): WebPushMessage
+    {
+        return (new WebPushMessage)
+            ->title('New squad message')
+            ->body($this->message->sender->name . ': ' . str($this->message->message)->limit(120))
+            ->icon('/icons/icon-192.png')
+            ->badge('/icons/icon-192.png')
+            ->tag('message-' . $this->message->sender_id)
+            ->data([
+                'url' => route('chat.index', ['user' => $this->message->sender_id], false),
+                'notification_id' => $notification->id,
+            ])
+            ->options(['TTL' => 3600]);
+    }
+
+    private function webPushIsConfigured(): bool
+    {
+        return filled(config('webpush.vapid.public_key')) && filled(config('webpush.vapid.private_key'));
     }
 }

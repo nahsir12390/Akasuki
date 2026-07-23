@@ -8,6 +8,7 @@ use App\Http\Controllers\LikeController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PushSubscriptionController;
 use Illuminate\Support\Facades\Broadcast;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\ContactController;
@@ -60,6 +61,12 @@ Route::middleware('auth')->group(function () {
         Route::patch('/notifications/read-all', 'markAllAsRead')->name('notifications.read-all');
         Route::patch('/notifications/{notification}/read', 'markAsRead')->name('notifications.read');
         Route::delete('/notifications/{notification}', 'destroy')->name('notifications.destroy');
+    });
+
+    Route::controller(PushSubscriptionController::class)->group(function () {
+        Route::get('/push/public-key', 'publicKey')->name('push.public-key');
+        Route::post('/push/subscriptions', 'store')->name('push.subscriptions.store');
+        Route::delete('/push/subscriptions', 'destroy')->name('push.subscriptions.destroy');
     });
 
     // Tutorial routes

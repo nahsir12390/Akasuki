@@ -68,10 +68,37 @@ self.addEventListener('fetch', (event) => {
     }
 });
 
+self.addEventListener('push', (event) => {
+    const fallbackPayload = {
+        title: 'Akatsuki Devs',
+        body: 'You have a new village notification.',
+        icon: '/icons/icon-192.png',
+        badge: '/icons/icon-192.png',
+        data: { url: '/notifications' },
+    };
+
+    const payload = event.data ? event.data.json() : fallbackPayload;
+    const title = payload.title || fallbackPayload.title;
+    const options = {
+        body: payload.body || fallbackPayload.body,
+        icon: payload.icon || fallbackPayload.icon,
+        badge: payload.badge || fallbackPayload.badge,
+        image: payload.image,
+        tag: payload.tag,
+        renotify: payload.renotify,
+        requireInteraction: payload.requireInteraction,
+        vibrate: payload.vibrate || [120, 60, 120],
+        data: payload.data || fallbackPayload.data,
+        actions: payload.actions || [],
+    };
+
+    event.waitUntil(self.registration.showNotification(title, options));
+});
+
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
 
-    const targetUrl = event.notification.data?.url || '/notifications';
+    const targetUrl = new URL(event.notification.data?.url || '/notifications', self.location.origin).href;
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {

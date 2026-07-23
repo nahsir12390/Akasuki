@@ -181,6 +181,94 @@ async function activeServiceWorkerRegistration() {
     return await navigator.serviceWorker.ready.catch(() => null);
 }
 
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let index = 0; index < rawData.length; index += 1) {
+        outputArray[index] = rawData.charCodeAt(index);
+    }
+
+    return outputArray;
+}
+
+async function fetchPushPublicKey(panel) {
+    const response = await fetch(panel.dataset.publicKeyUrl, {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+    });
+
+    if (!response.ok) {
+        throw new Error('Unable to load push configuration.');
+    }
+
+    const config = await response.json();
+
+    if (!config.configured || !config.publicKey) {
+        throw new Error('Web Push keys are not configured on the server yet.');
+    }
+
+    return config.publicKey;
+}
+
+async function currentPushSubscription() {
+    const registration = await activeServiceWorkerRegistration();
+
+    if (!registration?.pushManager) {
+        return null;
+    }
+
+    return await registration.pushManager.getSubscription();
+}
+
+function serializePushSubscription(subscription) {
+    const data = subscription.toJSON();
+
+    return {
+        endpoint: data.endpoint,
+        keys: {
+            p256dh: data.keys?.p256dh,
+            auth: data.keys?.auth,
+        },
+        contentEncoding: 'aes128gcm',
+    };
+}
+
+async function sendPushSubscription(panel, subscription) {
+    const response = await fetch(panel.dataset.subscribeUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+        },
+        body: JSON.stringify(serializePushSubscription(subscription)),
+    });
+
+    if (!response.ok) {
+        throw new Error('Unable to save this device subscription.');
+    }
+}
+
+async function deletePushSubscription(panel, endpoint) {
+    const response = await fetch(panel.dataset.unsubscribeUrl, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+        },
+        body: JSON.stringify({ endpoint }),
+    });
+
+    if (!response.ok) {
+        throw new Error('Unable to remove this device subscription.');
+    }
+}
+
 function permissionLabel(permission) {
     return {
         granted: 'Enabled',
@@ -209,13 +297,16 @@ async function refreshNotificationSetup(panel) {
     const supportElement = panel.querySelector('[data-notification-support]');
     const permissionElement = panel.querySelector('[data-notification-permission]');
     const workerElement = panel.querySelector('[data-notification-worker]');
+    const subscriptionElement = panel.querySelector('[data-notification-subscription]');
     const enableButton = panel.querySelector('[data-notification-enable]');
+    const disableButton = panel.querySelector('[data-notification-disable]');
     const testButton = panel.querySelector('[data-notification-test]');
     const supported = 'Notification' in window;
     const registration = await activeServiceWorkerRegistration();
+    const subscription = await currentPushSubscription();
 
     if (supportElement) {
-        supportElement.textContent = supported ? 'Supported' : 'Not supported';
+        supportElement.textContent = supported && 'PushManager' in window ? 'Supported' : 'Not supported';
     }
 
     if (permissionElement) {
@@ -226,20 +317,30 @@ async function refreshNotificationSetup(panel) {
         workerElement.textContent = registration ? 'Ready' : 'Unavailable';
     }
 
+    if (subscriptionElement) {
+        subscriptionElement.textContent = subscription ? 'Subscribed' : 'Not subscribed';
+    }
+
     if (enableButton) {
-        enableButton.disabled = !supported || Notification.permission === 'granted' || Notification.permission === 'denied';
+        enableButton.disabled = !supported || !registration?.pushManager || Boolean(subscription) || Notification.permission === 'denied';
+    }
+
+    if (disableButton) {
+        disableButton.disabled = !subscription;
     }
 
     if (testButton) {
         testButton.disabled = !supported || Notification.permission !== 'granted';
     }
 
-    if (!supported) {
+    if (!supported || !('PushManager' in window)) {
         setNotificationSetupMessage(panel, 'This browser does not support device notifications. You can still use in-app and email notifications.', 'error');
     } else if (Notification.permission === 'denied') {
         setNotificationSetupMessage(panel, 'Notifications are blocked for this browser. Enable them from your browser site settings to receive device alerts.', 'error');
+    } else if (subscription) {
+        setNotificationSetupMessage(panel, 'This device is subscribed. Messages and ally activity can now arrive even when the installed app is closed.');
     } else if (Notification.permission === 'granted') {
-        setNotificationSetupMessage(panel, 'Device alerts are enabled on this browser. Email and privacy preferences are still controlled by your account settings.');
+        setNotificationSetupMessage(panel, 'Permission is enabled. Subscribe this device to receive server push notifications.');
     }
 }
 
@@ -264,26 +365,63 @@ async function showTestNotification() {
 function setupBrowserNotifications() {
     document.querySelectorAll('[data-notification-setup]').forEach(async (panel) => {
         const enableButton = panel.querySelector('[data-notification-enable]');
+        const disableButton = panel.querySelector('[data-notification-disable]');
         const testButton = panel.querySelector('[data-notification-test]');
 
         await refreshNotificationSetup(panel);
 
         enableButton?.addEventListener('click', async () => {
-            if (!('Notification' in window)) {
+            if (!('Notification' in window) || !('PushManager' in window)) {
                 await refreshNotificationSetup(panel);
                 return;
             }
 
             markActionAsBusy(enableButton, 'Enabling...');
-            const permission = await Notification.requestPermission();
-            restoreBusyAction(enableButton);
+            try {
+                const permission = await Notification.requestPermission();
 
-            if (permission === 'granted') {
+                if (permission !== 'granted') {
+                    return;
+                }
+
+                const registration = await activeServiceWorkerRegistration();
+                const publicKey = await fetchPushPublicKey(panel);
+                const subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(publicKey),
+                });
+
+                await sendPushSubscription(panel, subscription);
                 localStorage.setItem('akatsuki-device-notifications', 'enabled');
                 await showTestNotification();
+            } catch (error) {
+                setNotificationSetupMessage(panel, error.message, 'error');
+            } finally {
+                restoreBusyAction(enableButton);
+                await refreshNotificationSetup(panel);
+            }
+        });
+
+        disableButton?.addEventListener('click', async () => {
+            const subscription = await currentPushSubscription();
+
+            if (!subscription) {
+                await refreshNotificationSetup(panel);
+                return;
             }
 
-            await refreshNotificationSetup(panel);
+            markActionAsBusy(disableButton, 'Removing...');
+            try {
+                await deletePushSubscription(panel, subscription.endpoint);
+                await subscription.unsubscribe();
+                localStorage.removeItem('akatsuki-device-notifications');
+                setNotificationSetupMessage(panel, 'This device has been unsubscribed from push notifications.');
+            } catch (error) {
+                setNotificationSetupMessage(panel, error.message, 'error');
+            } finally {
+                restoreBusyAction(disableButton);
+                await refreshNotificationSetup(panel);
+            }
         });
 
         testButton?.addEventListener('click', async () => {

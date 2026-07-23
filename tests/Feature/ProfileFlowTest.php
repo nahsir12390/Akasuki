@@ -63,5 +63,5 @@ test('settings include notification setup controls', function () {
         ->assertOk()
         ->assertSee('Notification setup')
         ->assertSee('Device Alerts')
-        ->assertSee('Email and privacy preferences');
+        ->assertSee('Browser push is controlled per device');
 });
