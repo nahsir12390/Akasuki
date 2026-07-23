@@ -41,7 +41,7 @@ test('pwa assets are available in the public directory', function (string $path,
 })->with([
     ['manifest.webmanifest', 'Akatsuki Devs'],
     ['offline.html', 'You are offline'],
-    ['sw.js', 'akatsuki-devs-v1'],
+    ['sw.js', 'akatsuki-devs-v2'],
 ]);
 
 test('pwa icons are available in the public directory', function (string $path) {
@@ -49,6 +49,7 @@ test('pwa icons are available in the public directory', function (string $path) 
         ->and(filesize(public_path($path)))->toBeGreaterThan(0);
 })->with([
     ['icons/icon-192.png'],
+    ['icons/apple-touch-icon.png'],
     ['icons/icon-512.png'],
     ['icons/maskable-512.png'],
 ]);

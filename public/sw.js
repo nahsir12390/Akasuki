@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'akatsuki-devs-v1';
+const CACHE_VERSION = 'akatsuki-devs-v2';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const OFFLINE_URL = '/offline.html';
 
@@ -7,6 +7,7 @@ const PRECACHE_URLS = [
     OFFLINE_URL,
     '/manifest.webmanifest',
     '/icons/icon-192.png',
+    '/icons/apple-touch-icon.png',
     '/icons/icon-512.png',
     '/icons/maskable-512.png'
 ];
