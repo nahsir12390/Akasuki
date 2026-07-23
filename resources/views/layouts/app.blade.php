@@ -40,7 +40,11 @@
             </div>
             <div class="min-w-0 flex-1">
                 <h2 class="font-black text-slate-950 dark:text-white">Install Akatsuki Devs</h2>
-                <p class="mt-1 text-sm leading-5 text-slate-600 dark:text-slate-400">Open faster, keep your village close, and use the app from your home screen.</p>
+                <p id="pwaInstallCopy" class="mt-1 text-sm leading-5 text-slate-600 dark:text-slate-400">Open faster, keep your village close, and use the app from your home screen.</p>
+                <div id="pwaManualSteps" class="mt-3 hidden rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-bold leading-5 text-orange-800 dark:border-orange-900 dark:bg-orange-950/35 dark:text-orange-200">
+                    <span data-pwa-ios-steps class="hidden">Tap Share, then choose Add to Home Screen.</span>
+                    <span data-pwa-android-steps class="hidden">Open your browser menu, then choose Install app or Add to Home screen.</span>
+                </div>
                 <div class="mt-3 flex flex-wrap gap-2">
                     <button id="pwaInstallButton" type="button" class="ui-btn ui-btn-primary min-h-10 px-3">
                         <i class="fas fa-download"></i>

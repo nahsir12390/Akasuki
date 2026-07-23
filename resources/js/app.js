@@ -129,6 +129,10 @@ function setupPwaInstallPrompt() {
     const promptCard = document.getElementById('pwaInstallPrompt');
     const installButton = document.getElementById('pwaInstallButton');
     const dismissButton = document.getElementById('pwaDismissButton');
+    const installCopy = document.getElementById('pwaInstallCopy');
+    const manualSteps = document.getElementById('pwaManualSteps');
+    const iosSteps = promptCard?.querySelector('[data-pwa-ios-steps]');
+    const androidSteps = promptCard?.querySelector('[data-pwa-android-steps]');
 
     if (!promptCard || !installButton || !dismissButton) {
         return;
@@ -137,19 +141,47 @@ function setupPwaInstallPrompt() {
     let deferredPrompt = null;
     const dismissedAt = Number(localStorage.getItem('pwa-install-dismissed-at') || 0);
     const dismissedRecently = dismissedAt && Date.now() - dismissedAt < 1000 * 60 * 60 * 24 * 7;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    const isMobile = window.matchMedia('(max-width: 768px)').matches || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    function showPrompt(mode = 'auto') {
+        if (dismissedRecently || isStandalone || localStorage.getItem('pwa-installed') === 'true') {
+            return;
+        }
+
+        manualSteps?.classList.toggle('hidden', mode === 'auto');
+        iosSteps?.classList.toggle('hidden', mode !== 'ios');
+        androidSteps?.classList.toggle('hidden', mode !== 'android');
+        installButton.classList.toggle('hidden', mode !== 'auto');
+
+        if (installCopy) {
+            installCopy.textContent = mode === 'auto'
+                ? 'Open faster, keep your village close, and use the app from your home screen.'
+                : 'Install this app on your phone for faster access and a cleaner full-screen experience.';
+        }
+
+        promptCard.classList.add('is-visible');
+    }
 
     window.addEventListener('beforeinstallprompt', (event) => {
         event.preventDefault();
         deferredPrompt = event;
 
-        if (!dismissedRecently) {
-            promptCard.classList.add('is-visible');
-        }
+        showPrompt('auto');
     });
+
+    window.setTimeout(() => {
+        if (!isMobile || deferredPrompt || isStandalone) {
+            return;
+        }
+
+        showPrompt(isIos ? 'ios' : 'android');
+    }, 1400);
 
     installButton.addEventListener('click', async () => {
         if (!deferredPrompt) {
-            promptCard.classList.remove('is-visible');
+            showPrompt(isIos ? 'ios' : 'android');
             return;
         }
 

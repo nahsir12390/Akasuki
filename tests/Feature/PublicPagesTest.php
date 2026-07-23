@@ -17,6 +17,14 @@ test('public pages render successfully', function (string $uri, string $expected
     ['/reset-password?token=test-token&email=shinobi@example.com', 'Reset Password'],
 ]);
 
+test('public layout includes mobile pwa install guidance', function () {
+    $this->get('/')
+        ->assertOk()
+        ->assertSee('Install Akatsuki Devs')
+        ->assertSee('Add to Home Screen')
+        ->assertSee('Install app or Add to Home screen');
+});
+
 test('contact form sends a subject with the message', function () {
     Mail::fake();
 
