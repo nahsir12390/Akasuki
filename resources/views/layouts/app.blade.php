@@ -6,6 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Akatsuki Devs - Developer Community')</title>
+    @include('components.pwa')
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @include('components.awesomeFont')

@@ -1,0 +1,55 @@
+{
+    "name": "Akatsuki Devs",
+    "short_name": "Akatsuki",
+    "description": "A Naruto-inspired developer community for courses, posts, allies, chat, quizzes, and games.",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "background_color": "#fff7ed",
+    "theme_color": "#f97316",
+    "categories": ["education", "social", "productivity"],
+    "icons": [
+        {
+            "src": "/icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Village",
+            "short_name": "Village",
+            "description": "Open community posts",
+            "url": "/post",
+            "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+        },
+        {
+            "name": "Courses",
+            "short_name": "Courses",
+            "description": "Open course scrolls",
+            "url": "/tutorial/html",
+            "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+        },
+        {
+            "name": "Games",
+            "short_name": "Games",
+            "description": "Open training games",
+            "url": "/games",
+            "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+        }
+    ]
+}
