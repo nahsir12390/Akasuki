@@ -173,6 +173,133 @@ function setupPwaInstallPrompt() {
     });
 }
 
+async function activeServiceWorkerRegistration() {
+    if (!('serviceWorker' in navigator)) {
+        return null;
+    }
+
+    return await navigator.serviceWorker.ready.catch(() => null);
+}
+
+function permissionLabel(permission) {
+    return {
+        granted: 'Enabled',
+        denied: 'Blocked',
+        default: 'Not enabled',
+    }[permission] || 'Unknown';
+}
+
+function setNotificationSetupMessage(panel, message, type = 'info') {
+    const messageElement = panel.querySelector('[data-notification-message]');
+
+    if (!messageElement) {
+        return;
+    }
+
+    messageElement.textContent = message;
+    messageElement.className = [
+        'mt-4 rounded-lg border px-3 py-2 text-xs font-semibold leading-5',
+        type === 'error'
+            ? 'border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/35 dark:text-red-200'
+            : 'border-orange-200 bg-orange-50 text-orange-800 dark:border-orange-900 dark:bg-orange-950/35 dark:text-orange-200',
+    ].join(' ');
+}
+
+async function refreshNotificationSetup(panel) {
+    const supportElement = panel.querySelector('[data-notification-support]');
+    const permissionElement = panel.querySelector('[data-notification-permission]');
+    const workerElement = panel.querySelector('[data-notification-worker]');
+    const enableButton = panel.querySelector('[data-notification-enable]');
+    const testButton = panel.querySelector('[data-notification-test]');
+    const supported = 'Notification' in window;
+    const registration = await activeServiceWorkerRegistration();
+
+    if (supportElement) {
+        supportElement.textContent = supported ? 'Supported' : 'Not supported';
+    }
+
+    if (permissionElement) {
+        permissionElement.textContent = supported ? permissionLabel(Notification.permission) : 'Unavailable';
+    }
+
+    if (workerElement) {
+        workerElement.textContent = registration ? 'Ready' : 'Unavailable';
+    }
+
+    if (enableButton) {
+        enableButton.disabled = !supported || Notification.permission === 'granted' || Notification.permission === 'denied';
+    }
+
+    if (testButton) {
+        testButton.disabled = !supported || Notification.permission !== 'granted';
+    }
+
+    if (!supported) {
+        setNotificationSetupMessage(panel, 'This browser does not support device notifications. You can still use in-app and email notifications.', 'error');
+    } else if (Notification.permission === 'denied') {
+        setNotificationSetupMessage(panel, 'Notifications are blocked for this browser. Enable them from your browser site settings to receive device alerts.', 'error');
+    } else if (Notification.permission === 'granted') {
+        setNotificationSetupMessage(panel, 'Device alerts are enabled on this browser. Email and privacy preferences are still controlled by your account settings.');
+    }
+}
+
+async function showTestNotification() {
+    const registration = await activeServiceWorkerRegistration();
+    const options = {
+        body: 'Your Akatsuki Devs notification setup is working.',
+        icon: '/icons/icon-192.png',
+        badge: '/icons/icon-192.png',
+        data: { url: '/notifications' },
+        tag: 'akatsuki-test-notification',
+    };
+
+    if (registration?.showNotification) {
+        await registration.showNotification('Village signal received', options);
+        return;
+    }
+
+    new Notification('Village signal received', options);
+}
+
+function setupBrowserNotifications() {
+    document.querySelectorAll('[data-notification-setup]').forEach(async (panel) => {
+        const enableButton = panel.querySelector('[data-notification-enable]');
+        const testButton = panel.querySelector('[data-notification-test]');
+
+        await refreshNotificationSetup(panel);
+
+        enableButton?.addEventListener('click', async () => {
+            if (!('Notification' in window)) {
+                await refreshNotificationSetup(panel);
+                return;
+            }
+
+            markActionAsBusy(enableButton, 'Enabling...');
+            const permission = await Notification.requestPermission();
+            restoreBusyAction(enableButton);
+
+            if (permission === 'granted') {
+                localStorage.setItem('akatsuki-device-notifications', 'enabled');
+                await showTestNotification();
+            }
+
+            await refreshNotificationSetup(panel);
+        });
+
+        testButton?.addEventListener('click', async () => {
+            if (!('Notification' in window) || Notification.permission !== 'granted') {
+                await refreshNotificationSetup(panel);
+                return;
+            }
+
+            markActionAsBusy(testButton, 'Sending...');
+            await showTestNotification();
+            restoreBusyAction(testButton);
+            setNotificationSetupMessage(panel, 'Test notification sent. If you did not see it, check your browser or OS notification settings.');
+        });
+    });
+}
+
 function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) {
         return;
@@ -188,6 +315,7 @@ function registerServiceWorker() {
 document.addEventListener('DOMContentLoaded', applyThemePreference);
 document.addEventListener('DOMContentLoaded', setupRequestGuards);
 document.addEventListener('DOMContentLoaded', setupPwaInstallPrompt);
+document.addEventListener('DOMContentLoaded', setupBrowserNotifications);
 registerServiceWorker();
 applyThemePreference();
 

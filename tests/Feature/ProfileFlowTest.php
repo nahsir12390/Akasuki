@@ -54,3 +54,14 @@ test('a user can update their password', function () {
 
     expect(Hash::check('New-password1!', $user->password))->toBeTrue();
 });
+
+test('settings include notification setup controls', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('account.settings') . '#preferences')
+        ->assertOk()
+        ->assertSee('Notification setup')
+        ->assertSee('Device Alerts')
+        ->assertSee('Email and privacy preferences');
+});

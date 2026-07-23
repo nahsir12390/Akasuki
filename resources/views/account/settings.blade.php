@@ -272,6 +272,8 @@
                     <h2 class="mt-3 text-2xl font-black tracking-normal text-slate-950 dark:text-white">Notifications & Privacy</h2>
                 </div>
 
+                <x-notification-setup class="mb-5" />
+
                 <form action="{{ route('account.update-preferences') }}" method="POST" class="space-y-4">
                     @csrf
                     @method('PUT')

@@ -36,6 +36,8 @@
         <x-ui.stat-card label="Latest" :value="optional($notifications->first()?->created_at)->diffForHumans() ?? 'None'" icon="fas fa-clock" meta="Most recent" />
     </div>
 
+    <x-notification-setup compact class="mt-5" />
+
     <div class="mt-6 space-y-3">
         @forelse($notifications as $notification)
             @php

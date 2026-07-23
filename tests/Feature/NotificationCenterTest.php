@@ -31,6 +31,17 @@ test('a user can view message notifications', function () {
         ->assertSee('Kakashi');
 });
 
+test('the notification center shows device notification setup', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('notifications.index'))
+        ->assertOk()
+        ->assertSee('Notification setup')
+        ->assertSee('Device Alerts')
+        ->assertSee('Enable');
+});
+
 test('opening a notification marks it as read and redirects to its action', function () {
     $sender = User::factory()->create();
     $receiver = User::factory()->create(['email_messages' => false]);
