@@ -50,11 +50,11 @@ class ChatController extends Controller
                      })
                      ->take(20);
 
+        $unreadMessageNotifications = $this->unreadMessageNotifications();
         $unreadCounts = [];
         foreach ($users as $user) {
-            $unreadCounts[$user->id] = auth()->user()->unreadNotifications()
-                ->where('type', 'App\Notifications\NewMessageNotification')
-                ->where('data->sender_id', $user->id)
+            $unreadCounts[$user->id] = $unreadMessageNotifications
+                ->filter(fn ($notification) => $this->notificationSenderId($notification) === (string) $user->id)
                 ->count();
         }
 
@@ -129,10 +129,9 @@ class ChatController extends Controller
         $this->authorize('viewConversation', [Message::class, $user]);
 
         // Mark notifications as read for this user
-        auth()->user()->unreadNotifications()
-            ->where('type', 'App\Notifications\NewMessageNotification')
-            ->where('data->sender_id', $user->id)
-            ->update(['read_at' => now()]);
+        $this->unreadMessageNotifications()
+            ->filter(fn ($notification) => $this->notificationSenderId($notification) === (string) $user->id)
+            ->each(fn ($notification) => $notification->markAsRead());
 
         $messages = Message::where(function ($query) use ($user) {
                 $query->where('sender_id', auth()->id())
@@ -223,5 +222,25 @@ class ChatController extends Controller
             ->pluck('sender_id');
 
         return $sentFriendIds->merge($receivedFriendIds)->unique()->values();
+    }
+
+    private function unreadMessageNotifications()
+    {
+        return auth()->user()->unreadNotifications()
+            ->where('type', NewMessageNotification::class)
+            ->get(['id', 'data', 'read_at']);
+    }
+
+    private function notificationSenderId($notification): ?string
+    {
+        $data = $notification->data;
+
+        if (is_string($data)) {
+            $data = json_decode($data, true) ?: [];
+        }
+
+        $senderId = data_get($data, 'sender_id');
+
+        return $senderId === null ? null : (string) $senderId;
     }
 }

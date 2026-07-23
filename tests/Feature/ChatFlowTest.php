@@ -124,6 +124,59 @@ test('a user can load messages from a conversation', function () {
         ]);
 });
 
+test('the chat page counts unread message notifications by sender', function () {
+    $sender = User::factory()->create(['name' => 'Kakashi']);
+    $receiver = User::factory()->create(['email_messages' => false]);
+    makeFriends($sender, $receiver);
+
+    $message = Message::create([
+        'sender_id' => $sender->id,
+        'receiver_id' => $receiver->id,
+        'message' => 'Unread signal.',
+    ]);
+    $message->load('sender');
+    $receiver->notify(new NewMessageNotification($message));
+
+    $response = $this->actingAs($receiver)
+        ->get(route('chat.index'))
+        ->assertOk();
+
+    expect($response->viewData('unreadCounts')[$sender->id])->toBe(1);
+});
+
+test('loading a conversation marks only that senders message notifications as read', function () {
+    $sender = User::factory()->create();
+    $otherSender = User::factory()->create();
+    $receiver = User::factory()->create(['email_messages' => false]);
+    makeFriends($sender, $receiver);
+    makeFriends($otherSender, $receiver);
+
+    $message = Message::create([
+        'sender_id' => $sender->id,
+        'receiver_id' => $receiver->id,
+        'message' => 'Open this conversation.',
+    ]);
+    $message->load('sender');
+    $receiver->notify(new NewMessageNotification($message));
+
+    $otherMessage = Message::create([
+        'sender_id' => $otherSender->id,
+        'receiver_id' => $receiver->id,
+        'message' => 'Keep this unread.',
+    ]);
+    $otherMessage->load('sender');
+    $receiver->notify(new NewMessageNotification($otherMessage));
+
+    $this->actingAs($receiver)
+        ->getJson(route('chat.load', $sender))
+        ->assertOk();
+
+    $notifications = $receiver->notifications()->get();
+
+    expect($notifications->firstWhere('data.sender_id', $sender->id)->read_at)->not->toBeNull();
+    expect($notifications->firstWhere('data.sender_id', $otherSender->id)->read_at)->toBeNull();
+});
+
 test('a user cannot load a non friend conversation', function () {
     $sender = User::factory()->create();
     $receiver = User::factory()->create();
