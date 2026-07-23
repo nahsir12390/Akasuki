@@ -77,8 +77,6 @@ services:
         sync: false
       - key: VAPID_PRIVATE_KEY
         sync: false
-      - key: WEBPUSH_DB_CONNECTION
-        value: pgsql
       - key: WEBPUSH_AUTOMATIC_PADDING
         value: true
 
