@@ -107,13 +107,11 @@
                 </div>
             </article>
         @empty
-            <x-ui.card class="p-10 text-center">
-                <div class="mx-auto grid h-16 w-16 place-items-center rounded-lg bg-orange-50 text-orange-600 dark:bg-orange-950/35 dark:text-orange-300">
-                    <i class="fas fa-bell-slash text-2xl"></i>
-                </div>
-                <h2 class="mt-5 text-2xl font-black text-slate-950 dark:text-white">No notifications yet</h2>
-                <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500 dark:text-slate-400">When allies message you or send requests, they will appear here.</p>
-            </x-ui.card>
+            <x-ui.empty-state
+                icon="fas fa-bell-slash"
+                title="No notifications yet"
+                description="When allies message you or send requests, they will appear here."
+            />
         @endforelse
     </div>
 

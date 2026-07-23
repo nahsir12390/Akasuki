@@ -33,6 +33,10 @@
                 <i class="fas fa-graduation-cap"></i>
                 Jutsu Scrolls
             </div>
+            <div class="flex shrink-0 items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-black uppercase tracking-wide text-orange-700 dark:border-orange-900 dark:bg-orange-950/45 dark:text-orange-300 sm:hidden">
+                <i class="fas fa-hand-pointer"></i>
+                Swipe
+            </div>
 
             <button
                 type="button"
@@ -51,7 +55,7 @@
                 <div
                     x-ref="rail"
                     @wheel="wheel($event)"
-                    class="course-scroll-rail scrollbar-hide flex gap-2 overflow-x-auto scroll-smooth px-1 py-1"
+                    class="course-scroll-rail scrollbar-hide flex gap-2 overflow-x-auto scroll-smooth px-3 py-1"
                 >
                     @foreach($courses as $course)
                         @php($active = request()->routeIs('tutorial.show') ? request()->route('course')?->is($course) : request()->path() === 'tutorial/' . $course->slug)

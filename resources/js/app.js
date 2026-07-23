@@ -53,6 +53,27 @@ function markActionAsBusy(element, label = 'Please wait...') {
     }
 }
 
+function restoreBusyAction(element) {
+    if (!element) {
+        return;
+    }
+
+    element.dataset.busy = 'false';
+    element.removeAttribute('aria-busy');
+    element.classList.remove('pointer-events-none', 'opacity-60', 'cursor-not-allowed');
+
+    if ('disabled' in element) {
+        element.disabled = false;
+    } else {
+        element.removeAttribute('aria-disabled');
+    }
+
+    if (element.dataset.originalHtml) {
+        element.innerHTML = element.dataset.originalHtml;
+        delete element.dataset.originalHtml;
+    }
+}
+
 function setupRequestGuards() {
     document.addEventListener('submit', (event) => {
         const form = event.target;
@@ -66,10 +87,17 @@ function setupRequestGuards() {
             return;
         }
 
+        const submitButtons = form.querySelectorAll('button[type="submit"], input[type="submit"], .ui-btn[type="submit"]');
         form.dataset.submitting = 'true';
-
-        form.querySelectorAll('button[type="submit"], input[type="submit"], .ui-btn[type="submit"]').forEach((button) => {
+        submitButtons.forEach((button) => {
             markActionAsBusy(button);
+        });
+
+        requestAnimationFrame(() => {
+            if (event.defaultPrevented) {
+                form.dataset.submitting = 'false';
+                submitButtons.forEach((button) => restoreBusyAction(button));
+            }
         });
     }, true);
 
@@ -97,6 +125,54 @@ function setupRequestGuards() {
     }, true);
 }
 
+function setupPwaInstallPrompt() {
+    const promptCard = document.getElementById('pwaInstallPrompt');
+    const installButton = document.getElementById('pwaInstallButton');
+    const dismissButton = document.getElementById('pwaDismissButton');
+
+    if (!promptCard || !installButton || !dismissButton) {
+        return;
+    }
+
+    let deferredPrompt = null;
+    const dismissedAt = Number(localStorage.getItem('pwa-install-dismissed-at') || 0);
+    const dismissedRecently = dismissedAt && Date.now() - dismissedAt < 1000 * 60 * 60 * 24 * 7;
+
+    window.addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault();
+        deferredPrompt = event;
+
+        if (!dismissedRecently) {
+            promptCard.classList.add('is-visible');
+        }
+    });
+
+    installButton.addEventListener('click', async () => {
+        if (!deferredPrompt) {
+            promptCard.classList.remove('is-visible');
+            return;
+        }
+
+        markActionAsBusy(installButton, 'Installing...');
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        promptCard.classList.remove('is-visible');
+        restoreBusyAction(installButton);
+    });
+
+    dismissButton.addEventListener('click', () => {
+        localStorage.setItem('pwa-install-dismissed-at', String(Date.now()));
+        promptCard.classList.remove('is-visible');
+    });
+
+    window.addEventListener('appinstalled', () => {
+        deferredPrompt = null;
+        promptCard.classList.remove('is-visible');
+        localStorage.setItem('pwa-installed', 'true');
+    });
+}
+
 function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) {
         return;
@@ -111,6 +187,7 @@ function registerServiceWorker() {
 
 document.addEventListener('DOMContentLoaded', applyThemePreference);
 document.addEventListener('DOMContentLoaded', setupRequestGuards);
+document.addEventListener('DOMContentLoaded', setupPwaInstallPrompt);
 registerServiceWorker();
 applyThemePreference();
 

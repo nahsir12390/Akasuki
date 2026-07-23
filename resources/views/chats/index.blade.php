@@ -87,18 +87,19 @@
                         @endif
                     </button>
                 @empty
-                    <div class="grid h-full place-items-center p-8 text-center">
-                        <div>
-                            <div class="mx-auto grid h-14 w-14 place-items-center rounded-lg bg-orange-50 text-orange-500 dark:bg-orange-950/35 dark:text-orange-300">
-                                <i class="fas fa-user-group text-xl"></i>
-                            </div>
-                            <h3 class="mt-4 font-black text-slate-950 dark:text-white">No allies yet</h3>
-                            <p class="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">Add friends before opening a private chat.</p>
-                            <x-ui.button :href="route('friends.list')" class="mt-4">
-                                <i class="fas fa-user-plus"></i>
-                                Find Allies
-                            </x-ui.button>
-                        </div>
+                    <div class="p-3">
+                        <x-ui.empty-state
+                            icon="fas fa-user-group"
+                            title="No allies yet"
+                            description="Add friends before opening a private chat."
+                        >
+                            <x-slot:action>
+                                <x-ui.button :href="route('friends.list')">
+                                    <i class="fas fa-user-plus"></i>
+                                    Find Allies
+                                </x-ui.button>
+                            </x-slot:action>
+                        </x-ui.empty-state>
                     </div>
                 @endforelse
             </div>
@@ -142,15 +143,12 @@
             </header>
 
             <div id="chatMessages" class="shinobi-grid scrollbar-hide min-h-0 overflow-y-auto bg-orange-50/35 p-4 dark:bg-slate-950/35">
-                <div class="flex h-full items-center justify-center text-center">
-                    <div class="max-w-sm">
-                        <div class="mx-auto grid h-16 w-16 place-items-center rounded-lg bg-white text-orange-600 shadow-sm ring-1 ring-orange-100 dark:bg-slate-900 dark:text-orange-300 dark:ring-slate-800">
-                            <i class="fas fa-comments text-xl"></i>
-                        </div>
-                        <h3 class="mt-4 font-black text-slate-950 dark:text-white">Your messages will appear here</h3>
-                        <p class="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">Select a conversation from the ally list.</p>
-                    </div>
-                </div>
+                <x-ui.empty-state
+                    class="h-full border-solid bg-white/62 dark:bg-slate-950/42"
+                    icon="fas fa-comments"
+                    title="Your messages will appear here"
+                    description="Select a conversation from the ally list."
+                />
             </div>
 
             <footer id="messageFormContainer" class="hidden border-t border-slate-200 bg-white/88 p-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/88">
@@ -299,13 +297,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!messages.length) {
             chatMessages.innerHTML = `
-                <div class="flex h-full items-center justify-center text-center">
-                    <div class="max-w-sm">
-                        <div class="mx-auto grid h-16 w-16 place-items-center rounded-lg bg-white text-orange-600 shadow-sm ring-1 ring-orange-100 dark:bg-slate-900 dark:text-orange-300 dark:ring-slate-800">
+                <div class="ui-empty-state h-full border-solid bg-white/62 dark:bg-slate-950/42">
+                    <div>
+                        <div class="ui-empty-icon mx-auto">
                             <i class="fas fa-comment-slash text-xl"></i>
                         </div>
-                        <h3 class="mt-4 font-black text-slate-950 dark:text-white">No messages yet</h3>
-                        <p class="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">Send the first message to open this squad channel.</p>
+                        <h3 class="mt-5 text-2xl font-black text-slate-950 dark:text-white">No messages yet</h3>
+                        <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500 dark:text-slate-400">Send the first message to open this squad channel.</p>
                     </div>
                 </div>
             `;
@@ -388,7 +386,34 @@ document.addEventListener('DOMContentLoaded', () => {
         messageFormContainer.classList.remove('hidden');
         setMobileMode('chat');
 
-        chatMessages.innerHTML = '<div class="flex justify-center py-8"><div class="sharingan-loader"></div></div>';
+        chatMessages.innerHTML = `
+            <div class="space-y-5 p-2">
+                <div class="flex justify-start">
+                    <div class="flex w-[78%] max-w-md gap-2">
+                        <div class="ui-skeleton h-8 w-8 shrink-0 rounded-full"></div>
+                        <div class="flex-1 space-y-2">
+                            <div class="ui-skeleton h-12 w-full"></div>
+                            <div class="ui-skeleton h-3 w-24"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end">
+                    <div class="w-[72%] max-w-sm space-y-2">
+                        <div class="ui-skeleton h-12 w-full"></div>
+                        <div class="ui-skeleton ml-auto h-3 w-20"></div>
+                    </div>
+                </div>
+                <div class="flex justify-start">
+                    <div class="flex w-[64%] max-w-sm gap-2">
+                        <div class="ui-skeleton h-8 w-8 shrink-0 rounded-full"></div>
+                        <div class="flex-1 space-y-2">
+                            <div class="ui-skeleton h-10 w-full"></div>
+                            <div class="ui-skeleton h-3 w-16"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
         subscribeToConversation(userId);
 
         try {
@@ -397,7 +422,17 @@ document.addEventListener('DOMContentLoaded', () => {
             renderMessages(await response.json());
             item.querySelector('.unread-badge')?.remove();
         } catch (error) {
-            chatMessages.innerHTML = `<div class="p-6 text-center text-sm font-bold text-red-600">${escapeHtml(error.message)}</div>`;
+            chatMessages.innerHTML = `
+                <div class="ui-empty-state h-full border-red-200 bg-red-50/60 dark:border-red-900/60 dark:bg-red-950/20">
+                    <div>
+                        <div class="ui-empty-icon mx-auto text-red-600 dark:text-red-300">
+                            <i class="fas fa-triangle-exclamation text-xl"></i>
+                        </div>
+                        <h3 class="mt-5 text-xl font-black text-red-700 dark:text-red-200">Conversation failed to load</h3>
+                        <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-red-600 dark:text-red-300">${escapeHtml(error.message)}</p>
+                    </div>
+                </div>
+            `;
         }
     }
 
@@ -409,7 +444,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderSearchResults(users) {
         if (!users.length) {
-            userList.innerHTML = '<div class="p-8 text-center text-sm font-semibold text-slate-500">No allies found.</div>';
+            userList.innerHTML = `
+                <div class="p-3">
+                    <div class="ui-empty-state min-h-48">
+                        <div>
+                            <div class="ui-empty-icon mx-auto"><i class="fas fa-magnifying-glass text-xl"></i></div>
+                            <h3 class="mt-4 font-black text-slate-950 dark:text-white">No allies found</h3>
+                            <p class="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">Try another name or add more allies.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
             return;
         }
 
@@ -488,6 +533,8 @@ document.addEventListener('DOMContentLoaded', () => {
         messageInput.value = '';
         resetComposerHeight();
         sendButton.disabled = true;
+        sendButton.dataset.originalHtml = sendButton.dataset.originalHtml || sendButton.innerHTML;
+        sendButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
         try {
             const response = await fetch(sendUrl, {
@@ -512,6 +559,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const temp = document.getElementById(tempId);
             const status = temp?.querySelector('[data-message-status]');
             if (status) status.textContent = 'Failed to send';
+        } finally {
+            sendButton.innerHTML = sendButton.dataset.originalHtml || '<i class="fas fa-paper-plane"></i>';
+            sendButton.disabled = messageInput.value.trim() === '';
         }
     });
 
