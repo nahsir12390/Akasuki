@@ -48,8 +48,10 @@ COPY --from=vendor /app /var/www/html
 COPY --from=assets /app/public/build /var/www/html/public/build
 COPY docker/nginx.conf /etc/nginx/sites-available/default
 COPY docker/start.sh /usr/local/bin/render-start
+COPY docker/reverb-start.sh /usr/local/bin/render-reverb-start
 
 RUN chmod +x /usr/local/bin/render-start \
+    && chmod +x /usr/local/bin/render-reverb-start \
     && mkdir -p storage/app/public storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache
 

@@ -29,8 +29,8 @@ return [
     'servers' => [
 
         'reverb' => [
-            'host' => env('REVERB_HOST', '127.0.0.1'),
-            'port' => env('REVERB_PORT', 8080),
+            'host' => env('REVERB_SERVER_HOST', '0.0.0.0'),
+            'port' => env('REVERB_SERVER_PORT', env('REVERB_PORT', 8080)),
             'path' => env('REVERB_SERVER_PATH', ''),
             'hostname' => env('REVERB_HOST', '127.0.0.1'),
             'options' => [
@@ -80,9 +80,9 @@ return [
                     'host' => env('REVERB_HOST', '127.0.0.1'),
                     'port' => env('REVERB_PORT', 8080),
                     'scheme' => env('REVERB_SCHEME', 'http'),
-                    'useTLS' => false,
+                    'useTLS' => env('REVERB_SCHEME', 'http') === 'https',
                 ],
-                'allowed_origins' => ['*'],
+                'allowed_origins' => array_filter(array_map('trim', explode(',', env('REVERB_ALLOWED_ORIGINS', '*')))),
                 'ping_interval' => env('REVERB_APP_PING_INTERVAL', 60),
                 'activity_timeout' => env('REVERB_APP_ACTIVITY_TIMEOUT', 30),
                 'max_connections' => env('REVERB_APP_MAX_CONNECTIONS'),

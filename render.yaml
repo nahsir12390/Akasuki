@@ -42,7 +42,21 @@ services:
       - key: FILESYSTEM_DISK
         value: public
       - key: BROADCAST_CONNECTION
-        value: log
+        value: reverb
+      - key: REVERB_APP_ID
+        sync: false
+      - key: REVERB_APP_KEY
+        sync: false
+      - key: REVERB_APP_SECRET
+        sync: false
+      - key: REVERB_HOST
+        sync: false
+      - key: REVERB_PORT
+        value: 443
+      - key: REVERB_SCHEME
+        value: https
+      - key: REVERB_ALLOWED_ORIGINS
+        sync: false
       - key: LOG_CHANNEL
         value: stderr
       - key: MAIL_MAILER
@@ -67,6 +81,41 @@ services:
         value: pgsql
       - key: WEBPUSH_AUTOMATIC_PADDING
         value: true
+
+  - type: web
+    name: akatsuki-reverb
+    runtime: docker
+    plan: starter
+    dockerCommand: render-reverb-start
+    envVars:
+      - key: APP_NAME
+        value: Akatsuki Devs
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_KEY
+        sync: false
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: BROADCAST_CONNECTION
+        value: reverb
+      - key: REVERB_APP_ID
+        sync: false
+      - key: REVERB_APP_KEY
+        sync: false
+      - key: REVERB_APP_SECRET
+        sync: false
+      - key: REVERB_SERVER_HOST
+        value: 0.0.0.0
+      - key: REVERB_HOST
+        sync: false
+      - key: REVERB_PORT
+        value: 443
+      - key: REVERB_SCHEME
+        value: https
+      - key: REVERB_ALLOWED_ORIGINS
+        sync: false
 
 databases:
   - name: akatsuki-devs-db
