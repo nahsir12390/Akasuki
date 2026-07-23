@@ -1,0 +1,65 @@
+services:
+  - type: web
+    name: akatsuki-devs
+    runtime: docker
+    plan: starter
+    healthCheckPath: /up
+    disk:
+      name: akatsuki-devs-storage
+      mountPath: /var/www/html/storage
+      sizeGB: 1
+    envVars:
+      - key: APP_NAME
+        value: Akatsuki Devs
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_KEY
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: ASSET_URL
+        sync: false
+      - key: FORCE_HTTPS
+        value: true
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DATABASE_URL
+        fromDatabase:
+          name: akatsuki-devs-db
+          property: connectionString
+      - key: SESSION_DRIVER
+        value: database
+      - key: SESSION_SECURE_COOKIE
+        value: true
+      - key: SESSION_SAME_SITE
+        value: lax
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: FILESYSTEM_DISK
+        value: public
+      - key: BROADCAST_CONNECTION
+        value: log
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: MAIL_MAILER
+        value: log
+      - key: MAIL_FROM_ADDRESS
+        sync: false
+      - key: MAIL_FROM_NAME
+        value: Akatsuki Devs
+      - key: MAIL_CONTACT_TO_ADDRESS
+        sync: false
+      - key: MAIL_CONTACT_TO_NAME
+        value: Akatsuki Devs Support
+      - key: YOUTUBE_API_KEY
+        sync: false
+
+databases:
+  - name: akatsuki-devs-db
+    plan: starter
+    databaseName: akatsuki_devs
+    user: akatsuki_devs

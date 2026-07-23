@@ -1,0 +1,1 @@
+ <i id="themeIcon" class="bi bi-moon-fill theme-toggle text-dark"></i>
