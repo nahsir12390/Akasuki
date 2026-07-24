@@ -209,6 +209,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let displayedMessageIds = new Set();
     let pusher = null;
     let channel = null;
+    let pollingTimer = null;
+    let pollingInFlight = false;
 
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
@@ -290,6 +292,22 @@ document.addEventListener('DOMContentLoaded', () => {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
+    function appendNewMessages(messages) {
+        let added = 0;
+
+        messages.forEach((message) => {
+            if (displayedMessageIds.has(message.id)) {
+                return;
+            }
+
+            displayedMessageIds.add(message.id);
+            appendMessage(message);
+            added += 1;
+        });
+
+        return added;
+    }
+
     function renderMessages(messages) {
         chatMessages.innerHTML = '';
         messageDates.clear();
@@ -314,6 +332,46 @@ document.addEventListener('DOMContentLoaded', () => {
             displayedMessageIds.add(message.id);
             appendMessage(message);
         });
+    }
+
+    function isRealtimeConnected() {
+        return pusher?.connection?.state === 'connected';
+    }
+
+    async function syncConversation() {
+        if (!currentChatUser || pollingInFlight || isRealtimeConnected()) {
+            return;
+        }
+
+        pollingInFlight = true;
+
+        try {
+            const response = await fetch(`${chatLoadBase}/${encodeURIComponent(currentChatUser)}`, {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            });
+
+            if (!response.ok) {
+                throw new Error('Unable to sync messages.');
+            }
+
+            const added = appendNewMessages(await response.json());
+            if (added > 0) {
+                setRealtimeStatus('online', 'Messages synced');
+            } else if (!isRealtimeConnected()) {
+                setRealtimeStatus('connecting', 'Syncing messages');
+            }
+        } catch (error) {
+            if (!isRealtimeConnected()) {
+                setRealtimeStatus('offline', 'Message sync paused');
+            }
+        } finally {
+            pollingInFlight = false;
+        }
+    }
+
+    function startConversationSync() {
+        window.clearInterval(pollingTimer);
+        pollingTimer = window.setInterval(syncConversation, 3000);
     }
 
     function initializePusher() {
@@ -425,12 +483,14 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
         subscribeToConversation(userId);
+        startConversationSync();
 
         try {
             const response = await fetch(`${chatLoadBase}/${encodeURIComponent(userId)}`, { headers: { 'Accept': 'application/json' } });
             if (!response.ok) throw new Error('Unable to load conversation.');
             renderMessages(await response.json());
             item.querySelector('.unread-badge')?.remove();
+            await syncConversation();
         } catch (error) {
             chatMessages.innerHTML = `
                 <div class="ui-empty-state h-full border-red-200 bg-red-50/60 dark:border-red-900/60 dark:bg-red-950/20">
@@ -565,6 +625,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 temp.innerHTML = messageMarkup(data.data, true);
             }
             displayedMessageIds.add(data.data.id);
+            window.setTimeout(syncConversation, 400);
         } catch (error) {
             const temp = document.getElementById(tempId);
             const status = temp?.querySelector('[data-message-status]');
