@@ -79,5 +79,39 @@ test('an authenticated user can open the games page', function () {
         ->assertSee('Code Memory')
         ->assertSee('Chakra Sequence')
         ->assertSee('Syntax Sprint')
-        ->assertSee('Debug Hunt');
+        ->assertSee('Debug Hunt')
+        ->assertSee('Personal Bests')
+        ->assertSee('Leaderboard');
+});
+
+test('an authenticated user can save a game score', function () {
+    $user = \App\Models\User::factory()->create();
+
+    $this->actingAs($user)
+        ->postJson(route('games.scores.store'), [
+            'game_slug' => 'memory',
+            'score' => 120,
+            'meta' => [
+                'attempts' => 8,
+            ],
+        ])
+        ->assertOk()
+        ->assertJsonPath('personal_best', 120);
+
+    $this->assertDatabaseHas('game_scores', [
+        'user_id' => $user->id,
+        'game_slug' => 'memory',
+        'score' => 120,
+    ]);
+});
+
+test('game scores only accept known game modes', function () {
+    $user = \App\Models\User::factory()->create();
+
+    $this->actingAs($user)
+        ->postJson(route('games.scores.store'), [
+            'game_slug' => 'unknown',
+            'score' => 120,
+        ])
+        ->assertUnprocessable();
 });

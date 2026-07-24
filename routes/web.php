@@ -94,6 +94,7 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::get('/games', [GameController::class, 'index'])->name('games.index');
+    Route::post('/games/scores', [GameController::class, 'storeScore'])->name('games.scores.store');
 
     // Friendship routes
     Route::prefix('friends')->controller(FriendshipController::class)->group(function () {

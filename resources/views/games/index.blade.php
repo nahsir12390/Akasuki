@@ -4,6 +4,7 @@
 
 @section('content')
 <x-ui.page width="max-w-7xl">
+    <div data-games-root data-score-url="{{ route('games.scores.store') }}">
     <section class="mb-6">
         <span class="rank-badge"><i class="fas fa-gamepad"></i> Training Games</span>
         <div class="mt-3 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -31,6 +32,7 @@
                     <div class="flex flex-wrap items-center gap-2">
                         <span class="game-stat"><i class="fas fa-check text-green-500"></i><span data-memory-matches>0</span>/6 matched</span>
                         <span class="game-stat"><i class="fas fa-bolt text-orange-500"></i><span data-memory-attempts>0</span> tries</span>
+                        <span class="game-stat"><i class="fas fa-trophy text-yellow-500"></i>Best <span data-live-best="memory">{{ number_format((int) ($personalBests['memory'] ?? 0)) }}</span></span>
                         <button type="button" data-memory-reset class="ui-btn ui-btn-secondary min-h-10 px-3"><i class="fas fa-rotate-right"></i> Reset</button>
                     </div>
                 </div>
@@ -50,6 +52,7 @@
                     <div class="flex flex-wrap items-center gap-2">
                         <span class="game-stat"><i class="fas fa-layer-group text-orange-500"></i>Level <span data-sequence-level>1</span></span>
                         <span class="game-stat"><i class="fas fa-heart text-red-500"></i><span data-sequence-lives>3</span> lives</span>
+                        <span class="game-stat"><i class="fas fa-trophy text-yellow-500"></i>Best <span data-live-best="sequence">{{ number_format((int) ($personalBests['sequence'] ?? 0)) }}</span></span>
                         <button type="button" data-sequence-start class="ui-btn ui-btn-primary min-h-10 px-3"><i class="fas fa-play"></i> Start</button>
                     </div>
                 </div>
@@ -75,6 +78,7 @@
                     <div class="flex flex-wrap items-center gap-2">
                         <span class="game-stat"><i class="fas fa-star text-yellow-500"></i><span data-syntax-score>0</span> score</span>
                         <span class="game-stat"><i class="fas fa-fire text-orange-500"></i><span data-syntax-streak>0</span> streak</span>
+                        <span class="game-stat"><i class="fas fa-trophy text-yellow-500"></i>Best <span data-live-best="syntax">{{ number_format((int) ($personalBests['syntax'] ?? 0)) }}</span></span>
                         <button type="button" data-syntax-reset class="ui-btn ui-btn-secondary min-h-10 px-3"><i class="fas fa-rotate-right"></i> Reset</button>
                     </div>
                 </div>
@@ -94,6 +98,7 @@
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
                         <span class="game-stat"><i class="fas fa-bug text-red-500"></i><span data-debug-fixed>0</span>/5 fixed</span>
+                        <span class="game-stat"><i class="fas fa-trophy text-yellow-500"></i>Best <span data-live-best="debug">{{ number_format((int) ($personalBests['debug'] ?? 0)) }}</span></span>
                         <button type="button" data-debug-reset class="ui-btn ui-btn-secondary min-h-10 px-3"><i class="fas fa-rotate-right"></i> Reset</button>
                     </div>
                 </div>
@@ -107,6 +112,42 @@
         </section>
 
         <aside class="space-y-4">
+            <x-ui.card class="p-5">
+                <div class="flex items-center justify-between gap-3">
+                    <h2 class="text-lg font-black text-slate-950 dark:text-white">Personal Bests</h2>
+                    <span data-score-toast class="hidden rounded-lg border border-green-200 bg-green-50 px-3 py-1 text-xs font-black text-green-700 dark:border-green-900 dark:bg-green-950/35 dark:text-green-200">Saved</span>
+                </div>
+                <div class="mt-4 grid gap-2">
+                    @foreach($gameModes as $slug => $label)
+                        <div class="flex items-center justify-between rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+                            <span class="text-sm font-black text-slate-700 dark:text-slate-200">{{ $label }}</span>
+                            <span class="rounded-lg bg-orange-50 px-3 py-1 text-sm font-black text-orange-700 dark:bg-orange-950/35 dark:text-orange-200" data-personal-best="{{ $slug }}">{{ number_format((int) ($personalBests[$slug] ?? 0)) }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            </x-ui.card>
+
+            <x-ui.card class="p-5">
+                <h2 class="text-lg font-black text-slate-950 dark:text-white">Leaderboard</h2>
+                <div class="mt-4 space-y-4">
+                    @foreach($gameModes as $slug => $label)
+                        <div>
+                            <p class="mb-2 text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ $label }}</p>
+                            <div class="space-y-2" data-leaderboard-list="{{ $slug }}">
+                                @forelse($leaderboards[$slug] ?? [] as $entry)
+                                    <div class="leaderboard-row">
+                                        <span class="truncate">{{ $entry->user?->name ?? 'Shinobi' }}</span>
+                                        <strong>{{ number_format($entry->score) }}</strong>
+                                    </div>
+                                @empty
+                                    <p class="rounded-lg border border-dashed border-slate-200 px-3 py-2 text-xs font-bold text-slate-500 dark:border-slate-800 dark:text-slate-400">No scores yet</p>
+                                @endforelse
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </x-ui.card>
+
             <x-ui.card class="p-5">
                 <h2 class="text-lg font-black text-slate-950 dark:text-white">Game Modes</h2>
                 <div class="mt-4 space-y-3">
@@ -131,10 +172,11 @@
                 <h2 class="text-lg font-black text-slate-950 dark:text-white">Progress Tips</h2>
                 <div class="mt-4 grid gap-3 text-sm font-semibold leading-6 text-slate-600 dark:text-slate-400">
                     <p>Use sequence for focus, syntax for speed, memory for recall, and debug hunt for careful reading.</p>
-                    <p>Scores reset on reload for now. Later we can store game results in the database and show leaderboards.</p>
+                    <p>Finish a round to save your score, raise your personal best, and climb the village leaderboard.</p>
                 </div>
             </x-ui.card>
         </aside>
+    </div>
     </div>
 </x-ui.page>
 @endsection
@@ -202,13 +244,101 @@
         transform: scale(.96);
         box-shadow: 0 0 0 5px rgba(249, 115, 22, .2), 0 20px 50px rgba(249, 115, 22, .28);
     }
+    .leaderboard-row {
+        display: flex;
+        min-height: 2.75rem;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        border-radius: .5rem;
+        border: 1px solid rgb(226 232 240);
+        background: white;
+        padding: .65rem .75rem;
+        font-size: .8rem;
+        font-weight: 900;
+        color: rgb(51 65 85);
+    }
+    .leaderboard-row strong {
+        color: rgb(234 88 12);
+    }
+    .dark .leaderboard-row {
+        border-color: rgb(30 41 59);
+        background: rgb(2 6 23);
+        color: rgb(226 232 240);
+    }
 </style>
 @endpush
 
 @push('scripts')
 <script>
+window.akatsukiGames = {
+    csrfToken: @json(csrf_token()),
+};
 @verbatim
 document.addEventListener('DOMContentLoaded', () => {
+    const gamesRoot = document.querySelector('[data-games-root]');
+    const scoreUrl = gamesRoot?.dataset.scoreUrl;
+    const savedScores = new Set();
+
+    function formatScore(score) {
+        return new Intl.NumberFormat().format(Number(score || 0));
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;',
+        }[character]));
+    }
+
+    function showScoreToast(text = 'Score saved') {
+        const toast = document.querySelector('[data-score-toast]');
+        if (!toast) return;
+        toast.textContent = text;
+        toast.classList.remove('hidden');
+        window.setTimeout(() => toast.classList.add('hidden'), 1800);
+    }
+
+    function refreshLeaderboard(slug, entries) {
+        const list = document.querySelector(`[data-leaderboard-list="${slug}"]`);
+        if (!list || !Array.isArray(entries)) return;
+        list.innerHTML = entries.length
+            ? entries.map((entry) => `<div class="leaderboard-row"><span class="truncate">${escapeHtml(entry.name)}</span><strong>${formatScore(entry.score)}</strong></div>`).join('')
+            : '<p class="rounded-lg border border-dashed border-slate-200 px-3 py-2 text-xs font-bold text-slate-500 dark:border-slate-800 dark:text-slate-400">No scores yet</p>';
+    }
+
+    async function saveGameScore(slug, score, meta = {}) {
+        if (!scoreUrl || savedScores.has(`${slug}:${score}:${JSON.stringify(meta)}`)) return;
+        savedScores.add(`${slug}:${score}:${JSON.stringify(meta)}`);
+
+        try {
+            const response = await fetch(scoreUrl, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': window.akatsukiGames?.csrfToken || '',
+                },
+                body: JSON.stringify({ game_slug: slug, score, meta }),
+            });
+
+            if (!response.ok) throw new Error('Score request failed');
+
+            const data = await response.json();
+            const personalBest = document.querySelector(`[data-personal-best="${slug}"]`);
+            const liveBest = document.querySelector(`[data-live-best="${slug}"]`);
+            if (personalBest) personalBest.textContent = formatScore(data.personal_best);
+            if (liveBest) liveBest.textContent = formatScore(data.personal_best);
+            refreshLeaderboard(slug, data.leaderboard);
+            showScoreToast('Score saved');
+        } catch (error) {
+            showScoreToast('Score not saved');
+        }
+    }
+
     const tabs = document.querySelectorAll('[data-game-tab]');
     const panels = document.querySelectorAll('[data-game-panel]');
     tabs.forEach((tab) => {
@@ -240,12 +370,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let memoryLocked = false;
     let memoryMatches = 0;
     let memoryAttempts = 0;
+    let memorySaved = false;
 
     function buildMemory() {
         memoryFirst = null;
         memoryLocked = false;
         memoryMatches = 0;
         memoryAttempts = 0;
+        memorySaved = false;
         document.querySelector('[data-memory-win]')?.classList.add('hidden');
         document.querySelector('[data-memory-matches]').textContent = '0';
         document.querySelector('[data-memory-attempts]').textContent = '0';
@@ -281,7 +413,13 @@ document.addEventListener('DOMContentLoaded', () => {
             memoryFirst = null;
             memoryMatches += 1;
             document.querySelector('[data-memory-matches]').textContent = memoryMatches;
-            if (memoryMatches === memoryPairs.length) document.querySelector('[data-memory-win]')?.classList.remove('hidden');
+            if (memoryMatches === memoryPairs.length) {
+                document.querySelector('[data-memory-win]')?.classList.remove('hidden');
+                if (!memorySaved) {
+                    memorySaved = true;
+                    saveGameScore('memory', Math.max(30, 180 - (memoryAttempts * 8)), { attempts: memoryAttempts, matches: memoryMatches });
+                }
+            }
             return;
         }
         memoryLocked = true;
@@ -304,6 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let sequenceInput = [];
     let sequencePlaying = false;
     let sequenceLives = 3;
+    let sequenceSaved = false;
     const sequenceMessage = document.querySelector('[data-sequence-message]');
 
     function sequenceStatus(text, tone = 'orange') {
@@ -315,6 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
         sequence = [];
         sequenceInput = [];
         sequenceLives = 3;
+        sequenceSaved = false;
         document.querySelector('[data-sequence-level]').textContent = '1';
         document.querySelector('[data-sequence-lives]').textContent = sequenceLives;
         document.querySelector('[data-sequence-win]')?.classList.add('hidden');
@@ -364,6 +504,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (sequence.length >= 8) {
                     document.querySelector('[data-sequence-win]')?.classList.remove('hidden');
                     sequenceStatus('You mastered the full sequence.', 'green');
+                    if (!sequenceSaved) {
+                        sequenceSaved = true;
+                        saveGameScore('sequence', (sequence.length * 25) + (sequenceLives * 20), { level: sequence.length, lives: sequenceLives });
+                    }
                     return;
                 }
                 sequenceStatus('Correct. Next level.', 'green');
@@ -384,6 +528,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let syntaxIndex = 0;
     let syntaxScore = 0;
     let syntaxStreak = 0;
+    let syntaxAnswered = 0;
+    let syntaxRoundScore = 0;
 
     function renderSyntax() {
         const current = syntaxQuestions[syntaxIndex];
@@ -398,12 +544,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const feedback = document.querySelector('[data-syntax-feedback]');
         const correct = answer === current.answer;
         syntaxScore += correct ? 10 : 0;
+        syntaxRoundScore += correct ? 10 : 0;
+        syntaxAnswered += 1;
         syntaxStreak = correct ? syntaxStreak + 1 : 0;
         document.querySelector('[data-syntax-score]').textContent = syntaxScore;
         document.querySelector('[data-syntax-streak]').textContent = syntaxStreak;
         feedback.classList.remove('hidden');
         feedback.className = `mt-4 rounded-lg border px-4 py-3 text-sm font-bold ${correct ? 'border-green-200 bg-green-50 text-green-800 dark:border-green-900 dark:bg-green-950/30 dark:text-green-200' : 'border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200'}`;
         feedback.textContent = correct ? 'Correct. Keep moving.' : `Not quite. Correct answer: ${current.answer}`;
+        if (syntaxAnswered >= syntaxQuestions.length) {
+            saveGameScore('syntax', syntaxRoundScore + (syntaxStreak * 3), { answered: syntaxAnswered, streak: syntaxStreak });
+            syntaxAnswered = 0;
+            syntaxRoundScore = 0;
+        }
         syntaxIndex = (syntaxIndex + 1) % syntaxQuestions.length;
         window.setTimeout(() => {
             feedback.classList.add('hidden');
@@ -415,6 +568,8 @@ document.addEventListener('DOMContentLoaded', () => {
         syntaxIndex = 0;
         syntaxScore = 0;
         syntaxStreak = 0;
+        syntaxAnswered = 0;
+        syntaxRoundScore = 0;
         document.querySelector('[data-syntax-score]').textContent = '0';
         document.querySelector('[data-syntax-streak]').textContent = '0';
         renderSyntax();
@@ -430,6 +585,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
     let debugIndex = 0;
     let debugFixed = 0;
+    let debugSaved = false;
 
     function renderDebug() {
         const current = debugChallenges[debugIndex];
@@ -448,6 +604,10 @@ document.addEventListener('DOMContentLoaded', () => {
         feedback.classList.remove('hidden');
         feedback.className = `mt-4 rounded-lg border px-4 py-3 text-sm font-bold ${correct ? 'border-green-200 bg-green-50 text-green-800 dark:border-green-900 dark:bg-green-950/30 dark:text-green-200' : 'border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200'}`;
         feedback.textContent = correct ? 'Bug fixed.' : `Check again. The issue is: ${current.answer}`;
+        if (debugFixed >= debugChallenges.length && !debugSaved) {
+            debugSaved = true;
+            saveGameScore('debug', 100, { fixed: debugFixed });
+        }
         debugIndex = (debugIndex + 1) % debugChallenges.length;
         window.setTimeout(() => {
             feedback.classList.add('hidden');
@@ -458,6 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('[data-debug-reset]')?.addEventListener('click', () => {
         debugIndex = 0;
         debugFixed = 0;
+        debugSaved = false;
         document.querySelector('[data-debug-fixed]').textContent = '0';
         renderDebug();
     });
