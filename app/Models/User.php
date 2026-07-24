@@ -87,6 +87,11 @@ class User extends Authenticatable
         return $this->hasMany(GameScore::class);
     }
 
+    public function courseProgress()
+    {
+        return $this->hasMany(CourseProgress::class);
+    }
+
     public function sentFriendRequests()
     {
         return $this->hasMany(Friendship::class, 'sender_id');

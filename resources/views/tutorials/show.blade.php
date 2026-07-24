@@ -4,6 +4,7 @@
 
 @section('content')
 <x-ui.page width="max-w-7xl">
+    <div data-progress-root data-progress-url="{{ route('tutorial.progress.update', $course) }}">
     <section class="ui-card overflow-hidden">
         <div class="relative bg-gradient-to-br from-slate-950 via-red-950 to-orange-700 p-5 text-white sm:p-8">
             <div class="absolute inset-0 shinobi-grid opacity-25"></div>
@@ -23,8 +24,20 @@
                 </div>
 
                 <div class="rounded-lg border border-white/15 bg-white/10 p-4 backdrop-blur">
-                    <h2 class="text-sm font-black uppercase text-orange-100">Mission Outcome</h2>
-                    <p class="mt-2 text-sm leading-6 text-white/85">Finish this path with portfolio-ready projects, stronger fundamentals, and a clear checklist for production work.</p>
+                    <div class="flex items-center justify-between gap-3">
+                        <h2 class="text-sm font-black uppercase text-orange-100">Mission Progress</h2>
+                        <span data-progress-rank class="rounded-lg bg-white/15 px-3 py-1 text-xs font-black ring-1 ring-white/15">{{ $progress->rank() }}</span>
+                    </div>
+                    <div class="mt-4">
+                        <div class="mb-2 flex items-center justify-between text-xs font-black text-orange-100">
+                            <span>Training completion</span>
+                            <span data-progress-percent>{{ $progress->percent }}%</span>
+                        </div>
+                        <div class="h-3 overflow-hidden rounded-full bg-white/15">
+                            <div data-progress-bar class="h-full rounded-full bg-white transition-all duration-300" style="width: {{ $progress->percent }}%"></div>
+                        </div>
+                    </div>
+                    <p class="mt-4 text-sm leading-6 text-white/85">Finish this path with portfolio-ready projects, stronger fundamentals, and a clear checklist for production work.</p>
                     <x-ui.button :href="route('tutorial.show', $nextCourse)" class="mt-4 w-full bg-white text-orange-700 hover:bg-orange-50">
                         Next: {{ $nextCourse->title }}
                         <i class="fas fa-arrow-right"></i>
@@ -45,10 +58,11 @@
         <aside class="space-y-4 lg:sticky lg:top-36 lg:self-start">
             <x-ui.card class="p-5">
                 <h2 class="text-lg font-black text-slate-950 dark:text-white">Mastery Checklist</h2>
+                <p class="mt-1 text-xs font-bold text-slate-500 dark:text-slate-400">Tick items as you complete them. Your progress is saved.</p>
                 <div class="mt-4 space-y-2">
                     @foreach($course->checklist ?? [] as $item)
                         <label class="flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 dark:border-slate-800 dark:text-slate-300">
-                            <input type="checkbox" class="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500">
+                            <input type="checkbox" data-progress-toggle data-section="checklist" data-index="{{ $loop->index }}" class="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500" @checked(in_array($loop->index, $progress->completed_checklist ?? [], true))>
                             <span>{{ $item }}</span>
                         </label>
                     @endforeach
@@ -102,13 +116,14 @@
                 </div>
                 <div class="grid gap-3">
                     @foreach($course->modules ?? [] as $index => $module)
-                        <div class="flex gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+                        <label class="flex cursor-pointer gap-3 rounded-lg border border-slate-200 bg-white p-4 transition hover:border-orange-300 hover:bg-orange-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-orange-950/25">
                             <div class="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-orange-50 text-sm font-black text-orange-700 ring-1 ring-orange-100 dark:bg-orange-950/35 dark:text-orange-300 dark:ring-orange-900">{{ $index + 1 }}</div>
-                            <div>
+                            <div class="min-w-0 flex-1">
                                 <h3 class="font-black text-slate-950 dark:text-white">{{ $module }}</h3>
                                 <p class="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">Study, build a small proof, then refactor it until the implementation is clear and reusable.</p>
                             </div>
-                        </div>
+                            <input type="checkbox" data-progress-toggle data-section="modules" data-index="{{ $index }}" class="mt-3 h-5 w-5 rounded border-slate-300 text-orange-600 focus:ring-orange-500" @checked(in_array($index, $progress->completed_modules ?? [], true))>
+                        </label>
                     @endforeach
                 </div>
             </x-ui.card>
@@ -178,13 +193,16 @@
                 <h2 class="mt-3 text-2xl font-black tracking-normal text-slate-950 dark:text-white">Build These Projects</h2>
                 <div class="mt-5 grid gap-4 md:grid-cols-3">
                     @foreach($course->projects ?? [] as $project)
-                        <div class="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
-                            <div class="grid h-11 w-11 place-items-center rounded-lg bg-orange-50 text-orange-600 dark:bg-orange-950/35 dark:text-orange-300">
-                                <i class="fas fa-diagram-project"></i>
+                        <label class="relative block cursor-pointer rounded-lg border border-slate-200 p-4 transition hover:border-orange-300 hover:bg-orange-50 dark:border-slate-800 dark:hover:bg-orange-950/25">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="grid h-11 w-11 place-items-center rounded-lg bg-orange-50 text-orange-600 dark:bg-orange-950/35 dark:text-orange-300">
+                                    <i class="fas fa-diagram-project"></i>
+                                </div>
+                                <input type="checkbox" data-progress-toggle data-section="projects" data-index="{{ $loop->index }}" class="h-5 w-5 rounded border-slate-300 text-orange-600 focus:ring-orange-500" @checked(in_array($loop->index, $progress->completed_projects ?? [], true))>
                             </div>
                             <h3 class="mt-4 font-black text-slate-950 dark:text-white">{{ $project }}</h3>
                             <p class="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">Ship a polished version, write notes on your decisions, and add screenshots to your portfolio.</p>
-                        </div>
+                        </label>
                     @endforeach
                 </div>
             </x-ui.card>
@@ -238,5 +256,57 @@
             </x-ui.card>
         </main>
     </div>
+    </div>
 </x-ui.page>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const root = document.querySelector('[data-progress-root]');
+    if (!root) return;
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const progressUrl = root.dataset.progressUrl;
+    const toggles = document.querySelectorAll('[data-progress-toggle]');
+    const percentText = document.querySelector('[data-progress-percent]');
+    const progressBar = document.querySelector('[data-progress-bar]');
+    const rankText = document.querySelector('[data-progress-rank]');
+
+    toggles.forEach((toggle) => {
+        toggle.addEventListener('change', async () => {
+            toggle.disabled = true;
+
+            try {
+                const response = await fetch(progressUrl, {
+                    method: 'PATCH',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: JSON.stringify({
+                        section: toggle.dataset.section,
+                        index: Number(toggle.dataset.index),
+                        completed: toggle.checked,
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Progress update failed');
+                }
+
+                const data = await response.json();
+                if (percentText) percentText.textContent = `${data.percent}%`;
+                if (progressBar) progressBar.style.width = `${data.percent}%`;
+                if (rankText) rankText.textContent = data.rank;
+            } catch (error) {
+                toggle.checked = !toggle.checked;
+            } finally {
+                toggle.disabled = false;
+            }
+        });
+    });
+});
+</script>
+@endpush

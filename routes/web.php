@@ -90,6 +90,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/tutorial/jquery', 'jquery')->name('tutorial.jquery');
         Route::get('/tutorial/cpp', 'cpp')->name('tutorial.cpp');
         Route::get('/tutorial/{course:slug}', 'show')->name('tutorial.show');
+        Route::patch('/tutorial/{course:slug}/progress', 'updateProgress')->name('tutorial.progress.update');
         Route::post('/tutorial/{course:slug}/quiz', 'submitQuiz')->name('tutorial.quiz.submit');
     });
 

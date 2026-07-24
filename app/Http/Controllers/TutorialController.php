@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Course;
+use App\Models\CourseProgress;
 use App\Models\QuizSubmission;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -70,6 +72,57 @@ class TutorialController extends Controller
         return back()->with('success', 'Quiz submitted for admin review.');
     }
 
+    public function updateProgress(Request $request, Course $course): JsonResponse
+    {
+        abort_unless($course->is_active, 404);
+
+        $validated = $request->validate([
+            'section' => ['required', 'string', 'in:modules,checklist,projects'],
+            'index' => ['required', 'integer', 'min:0'],
+            'completed' => ['required', 'boolean'],
+        ]);
+
+        $sectionCount = count($course->{$validated['section']} ?? []);
+        abort_if((int) $validated['index'] >= $sectionCount, 422, 'Progress item does not exist.');
+
+        $progress = CourseProgress::firstOrCreate([
+            'user_id' => $request->user()->id,
+            'course_id' => $course->id,
+        ]);
+
+        $column = match ($validated['section']) {
+            'modules' => 'completed_modules',
+            'checklist' => 'completed_checklist',
+            'projects' => 'completed_projects',
+        };
+
+        $items = $progress->{$column} ?? [];
+        $index = (int) $validated['index'];
+
+        if ($validated['completed']) {
+            $items[] = $index;
+        } else {
+            $items = array_diff($items, [$index]);
+        }
+
+        $progress->{$column} = collect($items)
+            ->map(fn ($item) => (int) $item)
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+        $progress->percent = $this->progressPercent($course, $progress);
+        $progress->completed_at = $progress->percent >= 100 ? ($progress->completed_at ?? now()) : null;
+        $progress->save();
+
+        return response()->json([
+            'percent' => $progress->percent,
+            'rank' => $progress->rank(),
+            'completed' => (bool) $validated['completed'],
+            'completed_at' => $progress->completed_at?->toIso8601String(),
+        ]);
+    }
+
     private function showBySlug(string $slug)
     {
         $course = Course::where('slug', $slug)->where('is_active', true)->firstOrFail();
@@ -83,8 +136,30 @@ class TutorialController extends Controller
         $allCourses = Course::where('is_active', true)->orderBy('sort_order')->orderBy('title')->get();
         $nextCourse = $allCourses->skipUntil(fn (Course $item) => $item->is($course))->skip(1)->first()
             ?: $allCourses->first();
+        $progress = CourseProgress::firstOrCreate([
+            'user_id' => request()->user()->id,
+            'course_id' => $course->id,
+        ]);
 
-        return view('tutorials.show', compact('course', 'videos', 'allCourses', 'nextCourse'));
+        $progress->percent = $this->progressPercent($course, $progress);
+        $progress->save();
+
+        return view('tutorials.show', compact('course', 'videos', 'allCourses', 'nextCourse', 'progress'));
+    }
+
+    private function progressPercent(Course $course, CourseProgress $progress): int
+    {
+        $total = count($course->modules ?? []) + count($course->checklist ?? []) + count($course->projects ?? []);
+
+        if ($total === 0) {
+            return 0;
+        }
+
+        $completed = count($progress->completed_modules ?? [])
+            + count($progress->completed_checklist ?? [])
+            + count($progress->completed_projects ?? []);
+
+        return (int) min(100, round(($completed / $total) * 100));
     }
 
     private function fetchVideos(string $query): array

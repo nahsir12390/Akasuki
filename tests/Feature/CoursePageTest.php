@@ -13,7 +13,8 @@ test('all course pages render with the advanced course layout', function (string
         ->assertOk()
         ->assertSee($title)
         ->assertSee('Advanced Learning Path')
-        ->assertSee('Build These Projects');
+        ->assertSee('Build These Projects')
+        ->assertSee('Mission Progress');
 })->with([
     ['tutorial.html', 'Advanced HTML'],
     ['tutorial.css', 'Advanced CSS'],
@@ -67,6 +68,37 @@ test('a learner can submit a course quiz for admin review', function () {
         'total_questions' => 1,
         'status' => 'pending',
     ]);
+});
+
+test('a learner can save course progress', function () {
+    \Illuminate\Support\Facades\Http::fake([
+        'googleapis.com/*' => \Illuminate\Support\Facades\Http::response(['items' => []]),
+        'www.googleapis.com/*' => \Illuminate\Support\Facades\Http::response(['items' => []]),
+    ]);
+
+    $user = \App\Models\User::factory()->create();
+    $course = \App\Models\Course::where('slug', 'html')->firstOrFail();
+
+    $this->actingAs($user)
+        ->get(route('tutorial.show', $course))
+        ->assertOk()
+        ->assertSee('Academy');
+
+    $this->actingAs($user)
+        ->patchJson(route('tutorial.progress.update', $course), [
+            'section' => 'modules',
+            'index' => 0,
+            'completed' => true,
+        ])
+        ->assertOk()
+        ->assertJsonStructure(['percent', 'rank', 'completed']);
+
+    $this->assertDatabaseHas('course_progress', [
+        'user_id' => $user->id,
+        'course_id' => $course->id,
+    ]);
+
+    expect($user->courseProgress()->where('course_id', $course->id)->first()->completed_modules)->toBe([0]);
 });
 
 test('an authenticated user can open the games page', function () {

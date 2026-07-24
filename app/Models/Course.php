@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Course extends Model
 {
@@ -35,6 +36,11 @@ class Course extends Model
         'quiz_questions' => 'array',
         'is_active' => 'boolean',
     ];
+
+    public function progressRecords(): HasMany
+    {
+        return $this->hasMany(CourseProgress::class);
+    }
 
     public function getYoutubeEmbedUrlAttribute(): ?string
     {
