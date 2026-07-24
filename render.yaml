@@ -57,6 +57,8 @@ services:
         value: https
       - key: REVERB_ALLOWED_ORIGINS
         sync: false
+      - key: REVERB_APP_ACCEPT_CLIENT_EVENTS_FROM
+        value: members
       - key: LOG_CHANNEL
         value: stderr
       - key: MAIL_MAILER
@@ -116,6 +118,8 @@ services:
         value: https
       - key: REVERB_ALLOWED_ORIGINS
         sync: false
+      - key: REVERB_APP_ACCEPT_CLIENT_EVENTS_FROM
+        value: members
 
 databases:
   - name: akatsuki-devs-db

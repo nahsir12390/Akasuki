@@ -152,6 +152,14 @@
             </div>
 
             <footer id="messageFormContainer" class="hidden border-t border-slate-200 bg-white/88 p-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/88">
+                <div id="typingIndicator" class="mb-2 hidden items-center gap-2 px-2 text-xs font-bold text-orange-700 dark:text-orange-300">
+                    <span class="flex items-center gap-1">
+                        <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-orange-500"></span>
+                        <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-orange-500 [animation-delay:120ms]"></span>
+                        <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-orange-500 [animation-delay:240ms]"></span>
+                    </span>
+                    <span id="typingIndicatorText">Your ally is typing...</span>
+                </div>
                 <form id="messageForm" class="flex items-end gap-2">
                     @csrf
                     <input type="hidden" name="receiver_id" id="receiverId">
@@ -188,6 +196,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const receiverIdInput = document.getElementById('receiverId');
     const messageInput = document.getElementById('messageInput');
     const sendButton = document.getElementById('sendButton');
+    const typingIndicator = document.getElementById('typingIndicator');
+    const typingIndicatorText = document.getElementById('typingIndicatorText');
     const showUsersSidebar = document.getElementById('showUsersSidebar');
     const closeUsersSidebar = document.getElementById('closeUsersSidebar');
     const backToUsers = document.getElementById('backToUsers');
@@ -211,6 +221,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let channel = null;
     let pollingTimer = null;
     let pollingInFlight = false;
+    let typingTimer = null;
+    let lastTypingSentAt = 0;
 
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
@@ -374,6 +386,45 @@ document.addEventListener('DOMContentLoaded', () => {
         pollingTimer = window.setInterval(syncConversation, 3000);
     }
 
+    function setTypingIndicator(isTyping, name = 'Your ally') {
+        if (!typingIndicator || !typingIndicatorText) {
+            return;
+        }
+
+        typingIndicatorText.textContent = `${name} is typing...`;
+        typingIndicator.classList.toggle('hidden', !isTyping);
+        typingIndicator.classList.toggle('flex', isTyping);
+
+        window.clearTimeout(typingTimer);
+        if (isTyping) {
+            typingTimer = window.setTimeout(() => setTypingIndicator(false), 3500);
+        }
+    }
+
+    function whisperTyping(isTyping = true) {
+        if (!channel || !currentChatUser || !isRealtimeConnected()) {
+            return;
+        }
+
+        const now = Date.now();
+        if (isTyping && now - lastTypingSentAt < 1400) {
+            return;
+        }
+
+        lastTypingSentAt = now;
+
+        try {
+            channel.trigger('client-typing', {
+                sender_id: authId,
+                receiver_id: parseInt(currentChatUser, 10),
+                name: @json(auth()->user()->name),
+                typing: isTyping,
+            });
+        } catch (error) {
+            console.warn('Typing indicator failed:', error);
+        }
+    }
+
     function initializePusher() {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         if (!window.Pusher || !reverbConfig.key || !reverbConfig.host || !csrfToken) {
@@ -419,6 +470,12 @@ document.addEventListener('DOMContentLoaded', () => {
         channel = pusher.subscribe(channelName);
         channel.bind('pusher:subscription_succeeded', () => setRealtimeStatus('online', 'Realtime connected'));
         channel.bind('pusher:subscription_error', () => setRealtimeStatus('offline', 'Private channel blocked'));
+        channel.bind('client-typing', (data) => {
+            if (!currentChatUser || parseInt(data.sender_id, 10) !== parseInt(currentChatUser, 10)) return;
+            if (parseInt(data.receiver_id, 10) !== parseInt(authId, 10)) return;
+
+            setTypingIndicator(Boolean(data.typing), data.name || 'Your ally');
+        });
         channel.bind('message.sent', (data) => {
             if (!currentChatUser || parseInt(data.sender_id, 10) === parseInt(authId, 10)) return;
             if (parseInt(data.sender_id, 10) !== parseInt(currentChatUser, 10) && parseInt(data.receiver_id, 10) !== parseInt(currentChatUser, 10)) return;
@@ -439,6 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const userId = item.dataset.id;
         currentChatUser = userId;
         receiverIdInput.value = userId;
+        setTypingIndicator(false);
         setActiveUser(item);
 
         chatUserAvatar.src = imageUrl(item.dataset.avatar);
@@ -574,7 +632,10 @@ document.addEventListener('DOMContentLoaded', () => {
     messageInput.addEventListener('input', () => {
         sendButton.disabled = messageInput.value.trim() === '';
         resetComposerHeight();
+        whisperTyping(messageInput.value.trim() !== '');
     });
+
+    messageInput.addEventListener('blur', () => whisperTyping(false));
 
     messageInput.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' && !event.shiftKey) {
@@ -602,6 +663,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         messageInput.value = '';
         resetComposerHeight();
+        whisperTyping(false);
+        setTypingIndicator(false);
         sendButton.disabled = true;
         sendButton.dataset.originalHtml = sendButton.dataset.originalHtml || sendButton.innerHTML;
         sendButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
