@@ -176,7 +176,6 @@
 @endsection
 
 @push('scripts')
-<script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const userList = document.getElementById('userList');
@@ -209,6 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentUserAvatar = @json(auth()->user()->profile_photo_url);
     const chatLoadBase = @json(url('/chat/user'));
     const sendUrl = @json(route('chat.send'));
+    const typingUrl = @json(route('chat.typing'));
     const searchUrl = @json(route('chat.search'));
     const profileUrlTemplate = @json(route('user.profile', ':id'));
     const reverbConfig = @json($reverbClientConfig);
@@ -223,6 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let pollingInFlight = false;
     let typingTimer = null;
     let lastTypingSentAt = 0;
+    let lastTypingState = false;
 
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
@@ -402,27 +403,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function whisperTyping(isTyping = true) {
-        if (!channel || !currentChatUser || !isRealtimeConnected()) {
+        if (!currentChatUser) {
             return;
         }
 
         const now = Date.now();
-        if (isTyping && now - lastTypingSentAt < 1400) {
+        if (isTyping === lastTypingState && now - lastTypingSentAt < 1400) {
             return;
         }
 
         lastTypingSentAt = now;
+        lastTypingState = isTyping;
 
-        try {
-            channel.trigger('client-typing', {
-                sender_id: authId,
-                receiver_id: parseInt(currentChatUser, 10),
-                name: @json(auth()->user()->name),
+        fetch(typingUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                ...(pusher?.connection?.socket_id ? { 'X-Socket-ID': pusher.connection.socket_id } : {}),
+            },
+            body: JSON.stringify({
+                receiver_id: currentChatUser,
                 typing: isTyping,
-            });
-        } catch (error) {
-            console.warn('Typing indicator failed:', error);
-        }
+            }),
+        }).catch((error) => console.warn('Typing indicator failed:', error));
     }
 
     function initializePusher() {
@@ -476,6 +482,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             setTypingIndicator(Boolean(data.typing), data.name || 'Your ally');
         });
+        channel.bind('typing.status', (data) => {
+            if (!currentChatUser || parseInt(data.sender_id, 10) !== parseInt(currentChatUser, 10)) return;
+            if (parseInt(data.receiver_id, 10) !== parseInt(authId, 10)) return;
+
+            setTypingIndicator(Boolean(data.typing), data.name || 'Your ally');
+        });
         channel.bind('message.sent', (data) => {
             if (!currentChatUser || parseInt(data.sender_id, 10) === parseInt(authId, 10)) return;
             if (parseInt(data.sender_id, 10) !== parseInt(currentChatUser, 10) && parseInt(data.receiver_id, 10) !== parseInt(currentChatUser, 10)) return;
@@ -497,6 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentChatUser = userId;
         receiverIdInput.value = userId;
         setTypingIndicator(false);
+        lastTypingState = false;
         setActiveUser(item);
 
         chatUserAvatar.src = imageUrl(item.dataset.avatar);

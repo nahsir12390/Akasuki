@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\UserNotificationUpdated;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
@@ -24,6 +25,7 @@ class NotificationController extends Controller
         abort_unless($notification->notifiable_id === auth()->id(), 403);
 
         $notification->markAsRead();
+        broadcast(new UserNotificationUpdated(auth()->user()));
 
         $url = $notification->data['action_url'] ?? null;
 
@@ -33,6 +35,7 @@ class NotificationController extends Controller
     public function markAllAsRead(): RedirectResponse
     {
         auth()->user()->unreadNotifications()->update(['read_at' => now()]);
+        broadcast(new UserNotificationUpdated(auth()->user()));
 
         return back()->with('success', 'All notifications marked as read.');
     }
@@ -42,6 +45,7 @@ class NotificationController extends Controller
         abort_unless($notification->notifiable_id === auth()->id(), 403);
 
         $notification->delete();
+        broadcast(new UserNotificationUpdated(auth()->user()));
 
         return back()->with('success', 'Notification removed.');
     }

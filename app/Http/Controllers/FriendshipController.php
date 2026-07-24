@@ -6,6 +6,7 @@ use App\Models\Friendship;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Events\UserNotificationUpdated;
 use App\Notifications\FriendRequestNotification;
 use App\Notifications\FriendRequestAcceptedNotification;
 
@@ -38,6 +39,7 @@ class FriendshipController extends Controller
         // Create the friend request using the enhanced method
         Friendship::createRequest(Auth::id(), $receiver_id);
         $receiver->notify(new FriendRequestNotification(Auth::user()));
+        broadcast(new UserNotificationUpdated($receiver));
 
         return back()->with('success', 'Friend request sent successfully.');
     }
@@ -54,6 +56,7 @@ class FriendshipController extends Controller
 
         $friendRequest->accept();
         $friendRequest->sender->notify(new FriendRequestAcceptedNotification(Auth::user()));
+        broadcast(new UserNotificationUpdated($friendRequest->sender));
 
         return back()->with('success', 'Friend request accepted.');
     }
@@ -312,6 +315,7 @@ class FriendshipController extends Controller
         if ($request->action === 'accept') {
             $friendRequest->accept();
             $friendRequest->sender->notify(new FriendRequestAcceptedNotification(Auth::user()));
+            broadcast(new UserNotificationUpdated($friendRequest->sender));
             $message = 'Friend request accepted.';
         } else {
             $friendRequest->decline();
@@ -352,6 +356,7 @@ class FriendshipController extends Controller
             if ($action === 'accept') {
                 $friendship->accept();
                 $friendship->sender->notify(new FriendRequestAcceptedNotification(Auth::user()));
+                broadcast(new UserNotificationUpdated($friendship->sender));
                 $processed++;
             } elseif ($action === 'decline') {
                 $friendship->decline();

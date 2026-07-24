@@ -6,6 +6,12 @@
     $notificationCount = $currentUser ? $currentUser->unreadNotifications()->count() : 0;
     $pendingRequests = $currentUser ? $currentUser->pendingFriendRequests()->count() : 0;
     $communityCount = $currentUser ? \App\Models\Post::where('user_id', '!=', $currentUser->id)->count() : 0;
+    $navbarRealtimeConfig = [
+        'key' => config('broadcasting.connections.reverb.key'),
+        'host' => config('broadcasting.connections.reverb.options.host'),
+        'port' => (int) config('broadcasting.connections.reverb.options.port', 8080),
+        'scheme' => config('broadcasting.connections.reverb.options.scheme', 'http'),
+    ];
 @endphp
 
 <header
@@ -98,9 +104,7 @@
                 <a href="{{ route('chat.index') }}" class="relative inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-bold transition {{ request()->routeIs('chat.*') ? 'nav-link-active text-orange-600' : 'text-slate-600 hover:bg-orange-50 hover:text-orange-700 dark:text-slate-300 dark:hover:bg-orange-950/35 dark:hover:text-orange-300' }}">
                     <i class="fas fa-comments"></i>
                     Messages
-                    @if($messageUnreadCount > 0)
-                        <span class="ml-1 rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-black text-white">{{ $messageUnreadCount }}</span>
-                    @endif
+                    <span data-message-count-badge class="{{ $messageUnreadCount > 0 ? '' : 'hidden' }} ml-1 rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-black text-white">{{ $messageUnreadCount }}</span>
                 </a>
 
                 <a href="{{ route('games.index') }}" class="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-bold transition {{ request()->routeIs('games.*') ? 'nav-link-active text-orange-600' : 'text-slate-600 hover:bg-orange-50 hover:text-orange-700 dark:text-slate-300 dark:hover:bg-orange-950/35 dark:hover:text-orange-300' }}">
@@ -110,9 +114,7 @@
 
                 <a href="{{ route('notifications.index') }}" class="relative grid h-10 w-10 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-orange-800 dark:hover:bg-orange-950/35 {{ request()->routeIs('notifications.*') ? 'nav-link-active text-orange-600' : '' }}" aria-label="Notifications">
                     <i class="fas fa-bell"></i>
-                    @if($notificationCount > 0)
-                        <span class="absolute -right-1 -top-1 rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-black text-white">{{ $notificationCount }}</span>
-                    @endif
+                    <span data-notification-count-badge class="{{ $notificationCount > 0 ? '' : 'hidden' }} absolute -right-1 -top-1 rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-black text-white">{{ $notificationCount }}</span>
                 </a>
 
                 @if($currentUser->is_admin)
@@ -148,9 +150,7 @@
                             <a href="{{ route('notifications.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 hover:bg-orange-50 hover:text-orange-700 dark:text-slate-300 dark:hover:bg-orange-950/35 dark:hover:text-orange-300">
                                 <i class="fas fa-bell text-orange-500"></i>
                                 Notifications
-                                @if($notificationCount > 0)
-                                    <span class="ml-auto rounded-full bg-red-600 px-2 py-0.5 text-xs text-white">{{ $notificationCount }}</span>
-                                @endif
+                                <span data-notification-count-badge class="{{ $notificationCount > 0 ? '' : 'hidden' }} ml-auto rounded-full bg-red-600 px-2 py-0.5 text-xs text-white">{{ $notificationCount }}</span>
                             </a>
                             @if($currentUser->is_admin)
                                 <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 hover:bg-orange-50 hover:text-orange-700 dark:text-slate-300 dark:hover:bg-orange-950/35 dark:hover:text-orange-300"><i class="fas fa-shield-halved text-orange-500"></i> Admin Panel</a>
@@ -159,9 +159,7 @@
                             <a href="{{ route('friends.list') }}" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 hover:bg-orange-50 hover:text-orange-700 dark:text-slate-300 dark:hover:bg-orange-950/35 dark:hover:text-orange-300">
                                 <i class="fas fa-user-friends text-orange-500"></i>
                                 Allies
-                                @if($pendingRequests > 0)
-                                    <span class="ml-auto rounded-full bg-red-600 px-2 py-0.5 text-xs text-white">{{ $pendingRequests }}</span>
-                                @endif
+                                <span data-pending-requests-badge class="{{ $pendingRequests > 0 ? '' : 'hidden' }} ml-auto rounded-full bg-red-600 px-2 py-0.5 text-xs text-white">{{ $pendingRequests }}</span>
                             </a>
                             <a href="{{ route('account.settings') }}" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 hover:bg-orange-50 hover:text-orange-700 dark:text-slate-300 dark:hover:bg-orange-950/35 dark:hover:text-orange-300"><i class="fas fa-cog text-orange-500"></i> Settings</a>
                             <form action="{{ route('logout') }}" method="POST" class="mt-2 border-t border-slate-100 pt-2 dark:border-slate-800">
@@ -182,15 +180,11 @@
                 </button>
                 <a href="{{ route('chat.index') }}" class="relative grid h-10 w-10 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300" aria-label="Messages">
                     <i class="fas fa-comments"></i>
-                    @if($messageUnreadCount > 0)
-                        <span class="absolute -right-1 -top-1 rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-black text-white">{{ $messageUnreadCount }}</span>
-                    @endif
+                    <span data-message-count-badge class="{{ $messageUnreadCount > 0 ? '' : 'hidden' }} absolute -right-1 -top-1 rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-black text-white">{{ $messageUnreadCount }}</span>
                 </a>
                 <a href="{{ route('notifications.index') }}" class="relative grid h-10 w-10 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300" aria-label="Notifications">
                     <i class="fas fa-bell"></i>
-                    @if($notificationCount > 0)
-                        <span class="absolute -right-1 -top-1 rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-black text-white">{{ $notificationCount }}</span>
-                    @endif
+                    <span data-notification-count-badge class="{{ $notificationCount > 0 ? '' : 'hidden' }} absolute -right-1 -top-1 rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-black text-white">{{ $notificationCount }}</span>
                 </a>
                 <button type="button" @click="mobileOpen = !mobileOpen" class="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 bg-white text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200" aria-label="Toggle navigation">
                     <i class="fas" :class="mobileOpen ? 'fa-times' : 'fa-bars'"></i>
@@ -220,12 +214,12 @@
                 <a href="{{ route('games.index') }}" class="flex items-center rounded-lg px-3 py-3 text-sm font-bold {{ request()->routeIs('games.*') ? 'bg-orange-50 text-orange-700 dark:bg-orange-950/35 dark:text-orange-300' : 'text-slate-700 dark:text-slate-300' }}"><i class="fas fa-gamepad mr-3 text-orange-500"></i>Games</a>
                 <a href="{{ route('createData') }}" class="flex items-center rounded-lg px-3 py-3 text-sm font-bold text-slate-700 dark:text-slate-300"><i class="fas fa-plus mr-3 text-orange-500"></i>Create Scroll</a>
                 <a href="{{ route('user.myprofile') }}" class="flex items-center rounded-lg px-3 py-3 text-sm font-bold text-slate-700 dark:text-slate-300"><i class="fas fa-user mr-3 text-orange-500"></i>My Profile</a>
-                <a href="{{ route('notifications.index') }}" class="flex items-center justify-between rounded-lg px-3 py-3 text-sm font-bold {{ request()->routeIs('notifications.*') ? 'bg-orange-50 text-orange-700 dark:bg-orange-950/35 dark:text-orange-300' : 'text-slate-700 dark:text-slate-300' }}"><span><i class="fas fa-bell mr-3 text-orange-500"></i>Notifications</span>@if($notificationCount > 0)<span class="rounded-full bg-red-600 px-2 py-0.5 text-xs text-white">{{ $notificationCount }}</span>@endif</a>
+                <a href="{{ route('notifications.index') }}" class="flex items-center justify-between rounded-lg px-3 py-3 text-sm font-bold {{ request()->routeIs('notifications.*') ? 'bg-orange-50 text-orange-700 dark:bg-orange-950/35 dark:text-orange-300' : 'text-slate-700 dark:text-slate-300' }}"><span><i class="fas fa-bell mr-3 text-orange-500"></i>Notifications</span><span data-notification-count-badge class="{{ $notificationCount > 0 ? '' : 'hidden' }} rounded-full bg-red-600 px-2 py-0.5 text-xs text-white">{{ $notificationCount }}</span></a>
                 @if($currentUser->is_admin)
                     <a href="{{ route('admin.dashboard') }}" class="flex items-center rounded-lg px-3 py-3 text-sm font-bold {{ request()->routeIs('admin.*') ? 'bg-orange-50 text-orange-700 dark:bg-orange-950/35 dark:text-orange-300' : 'text-slate-700 dark:text-slate-300' }}"><i class="fas fa-shield-halved mr-3 text-orange-500"></i>Admin Panel</a>
                     <a href="{{ route('admin.courses') }}" class="flex items-center rounded-lg px-3 py-3 text-sm font-bold text-slate-700 dark:text-slate-300"><i class="fas fa-graduation-cap mr-3 text-orange-500"></i>Manage Courses</a>
                 @endif
-                <a href="{{ route('friends.list') }}" class="flex items-center justify-between rounded-lg px-3 py-3 text-sm font-bold text-slate-700 dark:text-slate-300"><span><i class="fas fa-user-friends mr-3 text-orange-500"></i>Allies</span>@if($pendingRequests > 0)<span class="rounded-full bg-red-600 px-2 py-0.5 text-xs text-white">{{ $pendingRequests }}</span>@endif</a>
+                <a href="{{ route('friends.list') }}" class="flex items-center justify-between rounded-lg px-3 py-3 text-sm font-bold text-slate-700 dark:text-slate-300"><span><i class="fas fa-user-friends mr-3 text-orange-500"></i>Allies</span><span data-pending-requests-badge class="{{ $pendingRequests > 0 ? '' : 'hidden' }} rounded-full bg-red-600 px-2 py-0.5 text-xs text-white">{{ $pendingRequests }}</span></a>
                 <a href="{{ route('account.settings') }}" class="flex items-center rounded-lg px-3 py-3 text-sm font-bold text-slate-700 dark:text-slate-300"><i class="fas fa-cog mr-3 text-orange-500"></i>Settings</a>
                 <form action="{{ route('logout') }}" method="POST" class="border-t border-slate-100 pt-2 dark:border-slate-800">
                     @csrf
@@ -237,3 +231,43 @@
 
     <x-course-nav />
 </header>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const authId = @json($currentUser?->id);
+    const reverbConfig = @json($navbarRealtimeConfig);
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+    if (!authId || !window.Pusher || !reverbConfig.key || !reverbConfig.host || !csrfToken) {
+        return;
+    }
+
+    const updateBadges = (selector, count) => {
+        document.querySelectorAll(selector).forEach((badge) => {
+            const value = Number(count || 0);
+            badge.textContent = value;
+            badge.classList.toggle('hidden', value <= 0);
+        });
+    };
+
+    const pusher = new Pusher(reverbConfig.key, {
+        wsHost: reverbConfig.host,
+        wsPort: reverbConfig.port,
+        wssPort: reverbConfig.port,
+        forceTLS: reverbConfig.scheme === 'https',
+        enabledTransports: reverbConfig.scheme === 'https' ? ['wss'] : ['ws'],
+        disableStats: true,
+        cluster: 'mt1',
+        authEndpoint: '/broadcasting/auth',
+        auth: { headers: { 'X-CSRF-TOKEN': csrfToken, 'X-Requested-With': 'XMLHttpRequest' } },
+    });
+
+    pusher.subscribe(`private-user.${authId}`).bind('notifications.updated', (data) => {
+        updateBadges('[data-message-count-badge]', data.message_unread_count);
+        updateBadges('[data-notification-count-badge]', data.notification_count);
+        updateBadges('[data-pending-requests-badge]', data.pending_requests);
+    });
+});
+</script>
+@endpush

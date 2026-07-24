@@ -17,3 +17,8 @@ Broadcast::channel('chat.{user1}.{user2}', function (User $user, int $user1, int
         : false;
 });
 
+Broadcast::channel('user.{userId}', function (User $user, int $userId) {
+    return $user->id === $userId
+        ? ['id' => $user->id, 'name' => $user->name]
+        : false;
+});

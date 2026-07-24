@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Message;
 use App\Events\MessageSent;
+use App\Events\UserNotificationUpdated;
+use App\Events\UserTyping;
 use App\Models\Friendship;
 use Illuminate\Http\Request;
 use App\Notifications\NewMessageNotification;
@@ -88,6 +90,7 @@ class ChatController extends Controller
         // Send notification
         if ($receiver) {
             $receiver->notify(new NewMessageNotification($message));
+            broadcast(new UserNotificationUpdated($receiver));
         }
 
         // Update user's last_seen timestamp
@@ -122,6 +125,22 @@ class ChatController extends Controller
         ], 500);
     }
 }
+
+    public function typing(Request $request)
+    {
+        $data = $request->validate([
+            'receiver_id' => 'required|exists:users,id',
+            'typing' => 'required|boolean',
+        ]);
+
+        $receiver = User::findOrFail($data['receiver_id']);
+
+        $this->authorize('create', [Message::class, $receiver]);
+
+        broadcast(new UserTyping(auth()->user(), $receiver->id, (bool) $data['typing']))->toOthers();
+
+        return response()->noContent();
+    }
 
 
     public function loadChat(User $user)

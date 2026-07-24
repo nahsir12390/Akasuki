@@ -59,6 +59,9 @@
     </div>
 
     @livewireScripts
+    @auth
+        <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+    @endauth
     @stack('scripts')
 
     <script>

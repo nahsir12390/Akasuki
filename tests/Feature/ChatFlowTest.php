@@ -3,6 +3,7 @@
 use App\Models\Message;
 use App\Models\User;
 use App\Models\Friendship;
+use App\Events\UserTyping;
 use App\Notifications\NewMessageNotification;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
@@ -122,6 +123,41 @@ test('a user can load messages from a conversation', function () {
         ->assertJsonFragment([
             'message' => 'First message.',
         ]);
+});
+
+test('a user can broadcast typing status to a friend', function () {
+    Event::fake([UserTyping::class]);
+
+    $sender = User::factory()->create();
+    $receiver = User::factory()->create();
+    makeFriends($sender, $receiver);
+
+    $this->actingAs($sender)
+        ->postJson(route('chat.typing'), [
+            'receiver_id' => $receiver->id,
+            'typing' => true,
+        ])
+        ->assertNoContent();
+
+    Event::assertDispatched(UserTyping::class, fn (UserTyping $event) => $event->sender->is($sender)
+        && $event->receiverId === $receiver->id
+        && $event->typing === true);
+});
+
+test('a user cannot broadcast typing status to a non friend', function () {
+    Event::fake([UserTyping::class]);
+
+    $sender = User::factory()->create();
+    $receiver = User::factory()->create();
+
+    $this->actingAs($sender)
+        ->postJson(route('chat.typing'), [
+            'receiver_id' => $receiver->id,
+            'typing' => true,
+        ])
+        ->assertForbidden();
+
+    Event::assertNotDispatched(UserTyping::class);
 });
 
 test('the chat page counts unread message notifications by sender', function () {

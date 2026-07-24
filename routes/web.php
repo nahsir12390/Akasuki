@@ -52,6 +52,7 @@ Route::middleware('auth')->group(function () {
     Route::controller(ChatController::class)->group(function () {
         Route::get('/chat', 'index')->name('chat.index');
         Route::post('/chat/send', 'send')->name('chat.send');
+        Route::post('/chat/typing', 'typing')->name('chat.typing');
         Route::get('/chat/user/{user}', 'loadChat')->name('chat.load');
         Route::get('/chat/search-users', 'searchUsers')->name('chat.search');
         Route::get('/chat/unread-count', 'getUnreadCount')->name('chat.unread-count');
