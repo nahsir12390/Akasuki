@@ -330,7 +330,8 @@ document.addEventListener('DOMContentLoaded', () => {
             wsPort: reverbConfig.port,
             wssPort: reverbConfig.port,
             forceTLS: reverbConfig.scheme === 'https',
-            enabledTransports: ['ws', 'wss'],
+            enabledTransports: reverbConfig.scheme === 'https' ? ['wss'] : ['ws'],
+            disableStats: true,
             cluster: 'mt1',
             authEndpoint: '/broadcasting/auth',
             auth: { headers: { 'X-CSRF-TOKEN': csrfToken, 'X-Requested-With': 'XMLHttpRequest' } }
@@ -340,7 +341,16 @@ document.addEventListener('DOMContentLoaded', () => {
         pusher.connection.bind('connecting', () => setRealtimeStatus('connecting', 'Connecting realtime'));
         pusher.connection.bind('unavailable', () => setRealtimeStatus('offline', 'Realtime unavailable'));
         pusher.connection.bind('failed', () => setRealtimeStatus('offline', 'Realtime failed'));
-        pusher.connection.bind('error', () => setRealtimeStatus('offline', 'Realtime error'));
+        pusher.connection.bind('error', (error) => {
+            const detail = error?.error?.data?.message || error?.data?.message || error?.message || error?.type || 'Realtime error';
+            setRealtimeStatus('offline', detail);
+            console.error('Akatsuki realtime connection error', {
+                error,
+                host: reverbConfig.host,
+                port: reverbConfig.port,
+                scheme: reverbConfig.scheme,
+            });
+        });
     }
 
     function subscribeToConversation(otherUserId) {

@@ -9,6 +9,7 @@ use App\Http\Controllers\PostController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PushSubscriptionController;
+use App\Http\Controllers\RealtimeDiagnosticsController;
 use Illuminate\Support\Facades\Broadcast;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\ContactController;
@@ -68,6 +69,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/push/subscriptions', 'store')->name('push.subscriptions.store');
         Route::delete('/push/subscriptions', 'destroy')->name('push.subscriptions.destroy');
     });
+
+    Route::get('/realtime/diagnostics', RealtimeDiagnosticsController::class)->name('realtime.diagnostics');
 
     // Tutorial routes
     Route::controller(TutorialController::class)->group(function() {
