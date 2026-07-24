@@ -11,7 +11,8 @@ test('the profile page shows the main navigation', function () {
         ->assertOk()
         ->assertSee('Akatsuki Devs')
         ->assertSee('Community')
-        ->assertSee('Messages');
+        ->assertSee('Messages')
+        ->assertSee('Achievements');
 });
 
 test('a user can update their account profile', function () {

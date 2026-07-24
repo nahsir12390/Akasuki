@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\GameScore;
+use App\Services\AchievementService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -54,6 +55,8 @@ class GameController extends Controller
             'meta' => $validated['meta'] ?? [],
             'completed_at' => now(),
         ]);
+
+        AchievementService::sync($request->user());
 
         $personalBest = $request->user()
             ->gameScores()

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\AchievementService;
 use Illuminate\Http\Request;
 use App\Models\Friendship;
 use Illuminate\Support\Facades\Auth;
@@ -36,8 +37,12 @@ class UserController extends Controller
 
         // Calculate engagement stats
         $engagementStats = $this->calculateUserEngagement($user);
+        if (Auth::check() && Auth::id() === $user->id) {
+            AchievementService::sync($user);
+        }
+        $achievements = $user->achievements()->latest('unlocked_at')->limit(8)->get();
 
-        return view('users.profile', compact('user', 'posts', 'friendshipStatus', 'engagementStats'));
+        return view('users.profile', compact('user', 'posts', 'friendshipStatus', 'engagementStats', 'achievements'));
     }
 
     /**

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Course;
 use App\Models\CourseProgress;
 use App\Models\QuizSubmission;
+use App\Services\AchievementService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -69,6 +70,8 @@ class TutorialController extends Controller
             'status' => 'pending',
         ]);
 
+        AchievementService::sync($request->user());
+
         return back()->with('success', 'Quiz submitted for admin review.');
     }
 
@@ -114,6 +117,8 @@ class TutorialController extends Controller
         $progress->percent = $this->progressPercent($course, $progress);
         $progress->completed_at = $progress->percent >= 100 ? ($progress->completed_at ?? now()) : null;
         $progress->save();
+
+        AchievementService::sync($request->user());
 
         return response()->json([
             'percent' => $progress->percent,

@@ -90,7 +90,7 @@
         <x-ui.stat-card label="Allies" :value="$friendsCount" icon="fas fa-user-group" meta="Accepted connections" />
         <x-ui.stat-card label="Scrolls" :value="$engagementStats['post_count']" icon="fas fa-scroll" meta="Published posts" />
         <x-ui.stat-card label="Chakra" :value="$engagementStats['engagement_score']" icon="fas fa-bolt" :meta="$engagementStats['total_likes'] . ' likes, ' . $engagementStats['total_comments'] . ' comments'" />
-        <x-ui.stat-card label="Village Days" :value="round($user->created_at->diffInDays(now()))" icon="fas fa-calendar-days" meta="Member activity age" />
+        <x-ui.stat-card label="Badges" :value="$achievements->count()" icon="fas fa-award" meta="Unlocked achievements" />
     </div>
 
     <div class="mt-6 grid gap-6 lg:grid-cols-[320px_1fr]">
@@ -112,6 +112,25 @@
                             <i class="fas fa-arrow-up-right-from-square text-xs"></i>
                         </a>
                     @endif
+                </div>
+            </x-ui.card>
+
+            <x-ui.card class="p-5">
+                <h2 class="text-lg font-black text-slate-950 dark:text-white">Achievements</h2>
+                <div class="mt-4 space-y-3">
+                    @forelse($achievements as $achievement)
+                        <div class="flex items-start gap-3 rounded-lg border border-orange-100 bg-orange-50/60 p-3 dark:border-orange-900 dark:bg-orange-950/25">
+                            <span class="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-white text-orange-600 shadow-sm dark:bg-slate-950 dark:text-orange-300">
+                                <i class="{{ $achievement->icon }}"></i>
+                            </span>
+                            <span class="min-w-0">
+                                <span class="block text-sm font-black text-slate-950 dark:text-white">{{ $achievement->title }}</span>
+                                <span class="block text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400">{{ $achievement->description }}</span>
+                            </span>
+                        </div>
+                    @empty
+                        <p class="text-sm leading-6 text-slate-500 dark:text-slate-400">No badges unlocked yet. Learn, post, play, or form a squad to earn your first one.</p>
+                    @endforelse
                 </div>
             </x-ui.card>
 

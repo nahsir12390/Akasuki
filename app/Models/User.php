@@ -92,6 +92,16 @@ class User extends Authenticatable
         return $this->hasMany(CourseProgress::class);
     }
 
+    public function quizSubmissions()
+    {
+        return $this->hasMany(QuizSubmission::class);
+    }
+
+    public function achievements()
+    {
+        return $this->hasMany(UserAchievement::class);
+    }
+
     public function sentFriendRequests()
     {
         return $this->hasMany(Friendship::class, 'sender_id');

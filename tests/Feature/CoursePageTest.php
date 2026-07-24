@@ -98,6 +98,11 @@ test('a learner can save course progress', function () {
         'course_id' => $course->id,
     ]);
 
+    $this->assertDatabaseHas('user_achievements', [
+        'user_id' => $user->id,
+        'slug' => 'first_progress',
+    ]);
+
     expect($user->courseProgress()->where('course_id', $course->id)->first()->completed_modules)->toBe([0]);
 });
 
@@ -134,6 +139,11 @@ test('an authenticated user can save a game score', function () {
         'user_id' => $user->id,
         'game_slug' => 'memory',
         'score' => 120,
+    ]);
+
+    $this->assertDatabaseHas('user_achievements', [
+        'user_id' => $user->id,
+        'slug' => 'first_game',
     ]);
 });
 
