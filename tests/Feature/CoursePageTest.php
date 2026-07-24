@@ -76,5 +76,8 @@ test('an authenticated user can open the games page', function () {
         ->get(route('games.index'))
         ->assertOk()
         ->assertSee('Training Games')
-        ->assertSee('Code Memory');
+        ->assertSee('Code Memory')
+        ->assertSee('Chakra Sequence')
+        ->assertSee('Syntax Sprint')
+        ->assertSee('Debug Hunt');
 });
