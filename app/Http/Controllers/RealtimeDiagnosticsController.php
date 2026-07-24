@@ -27,6 +27,7 @@ class RealtimeDiagnosticsController extends Controller
                 'public_key_present' => filled(config('webpush.vapid.public_key')),
                 'private_key_present' => filled(config('webpush.vapid.private_key')),
                 'subject' => config('webpush.vapid.subject'),
+                'current_device_subscriptions' => auth()->user()->pushSubscriptions()->count(),
             ],
         ]);
     }
